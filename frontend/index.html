@@ -9,6 +9,35 @@
   <body>
     <canvas id="orb-canvas"></canvas>
 
+    <div id="hud-shell" aria-label="JARVIS mission control">
+      <section id="hud-left" class="hud-panel">
+        <div class="hud-kicker">MISSION CONTROL</div>
+        <div class="hud-title">Live Systems</div>
+        <div class="hud-metrics">
+          <div><span>LINK</span><strong id="metric-link">connecting</strong></div>
+          <div><span>UPTIME</span><strong id="metric-uptime">--</strong></div>
+          <div><span>LOAD</span><strong id="metric-load">--</strong></div>
+          <div><span>DISK</span><strong id="metric-disk">--</strong></div>
+        </div>
+        <div id="drop-zone">
+          <span>DROP FILES</span>
+          <small>Text, code, JSON, Markdown and CSV become instant context.</small>
+        </div>
+      </section>
+
+      <section id="hud-right" class="hud-panel">
+        <div class="hud-kicker">COMMAND DECK</div>
+        <div class="hud-title">Rapid Actions</div>
+        <div id="quick-actions">
+          <button data-command="Look at my screen and summarize what matters.">Scan Screen</button>
+          <button data-command="Summarize today's calendar and unread email priorities.">Daily Brief</button>
+          <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
+          <button data-command="Review the current JARVIS project and suggest one improvement.">Self Review</button>
+        </div>
+        <div id="event-log" aria-live="polite"></div>
+      </section>
+    </div>
+
     <!-- Minimal controls — top right -->
     <div id="controls">
       <button id="btn-mute" title="Mute/Unmute">
