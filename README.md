@@ -26,6 +26,9 @@ JARVIS connects to your Apple Calendar, Mail, and Notes. It can browse the web, 
 - **Plans your day** -- combines calendar, tasks, and priorities into a plan
 - **Sees your screen** -- knows what apps are open for context-aware responses
 - **Audio-reactive orb** -- a Three.js particle visualization that pulses with JARVIS's voice
+- **Type or talk** -- a command bar lets you type requests when speaking isn't an option
+- **Keyboard shortcuts** -- drive the whole cockpit hands-on (press `?` for the list)
+- **Mission-control HUD** -- live system metrics, token usage, session cost, and an activity log
 
 ## Requirements
 
@@ -79,7 +82,19 @@ cd frontend && npm run dev
 open http://localhost:5173
 ```
 
-Click the page once to enable audio, then speak. JARVIS will respond.
+Click the page once to enable audio, then speak. JARVIS will respond. You can also
+type into the command bar at the bottom of the screen if you'd rather not speak.
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the command bar |
+| `M` | Mute / unmute the microphone |
+| `Esc` | Stop speaking · close panels |
+| `L` | Clear the activity log |
+| `,` | Open settings |
+| `?` | Toggle the shortcuts overlay |
 
 ## Configuration
 

@@ -26,9 +26,15 @@ const metricLink = document.getElementById("metric-link")!;
 const metricUptime = document.getElementById("metric-uptime")!;
 const metricLoad = document.getElementById("metric-load")!;
 const metricDisk = document.getElementById("metric-disk")!;
+const metricCost = document.getElementById("metric-cost")!;
+const metricTokens = document.getElementById("metric-tokens")!;
 const eventLog = document.getElementById("event-log")!;
 const dropZone = document.getElementById("drop-zone")!;
 const quickActions = document.getElementById("quick-actions")!;
+
+const statePill = document.getElementById("state-pill")!;
+const statePillLabel = document.getElementById("state-pill-label")!;
+const toastStack = document.getElementById("toast-stack")!;
 
 type LogTone = "user" | "jarvis" | "system";
 
@@ -66,19 +72,54 @@ async function refreshSystemMetrics() {
   }
 }
 
-function sendCommand(text: string, source: "voice" | "quick" | "file" = "quick") {
+function formatTokens(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
+async function refreshUsage() {
+  try {
+    const res = await fetch("/api/usage");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const session = data.session || {};
+    const today = data.today || {};
+    const tokens = Number(session.input_tokens || 0) + Number(session.output_tokens || 0);
+    metricTokens.textContent = formatTokens(tokens);
+    metricCost.textContent = typeof today.cost_usd === "number" ? `$${today.cost_usd.toFixed(2)}` : "--";
+  } catch {
+    metricTokens.textContent = "--";
+    metricCost.textContent = "--";
+  }
+}
+
+function sendCommand(text: string, source: "voice" | "quick" | "file" | "text" = "quick") {
   audioPlayer.stop();
   socket.send({ type: "transcript", text, isFinal: true, source });
   addLog(text, source === "file" ? "system" : "user");
   transition("thinking");
 }
 
-function showError(msg: string) {
-  errorEl.textContent = msg;
-  errorEl.style.opacity = "1";
+type ToastType = "info" | "success" | "error";
+
+function showToast(msg: string, type: ToastType = "info", duration = 4000) {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  toastStack.appendChild(toast);
+  while (toastStack.children.length > 4) toastStack.firstElementChild?.remove();
   setTimeout(() => {
-    errorEl.style.opacity = "0";
-  }, 5000);
+    toast.classList.add("leaving");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+  }, duration);
+}
+
+function showError(msg: string) {
+  // Keep the legacy element in sync for any external callers, but surface via toast.
+  errorEl.textContent = msg;
+  showToast(msg, "error", 5000);
 }
 
 function updateStatus(state: State) {
@@ -89,6 +130,18 @@ function updateStatus(state: State) {
     speaking: "",
   };
   statusEl.textContent = labels[state];
+  updateStatePill(state);
+}
+
+function updateStatePill(state: State) {
+  const pillLabels: Record<State, string> = {
+    idle: "standby",
+    listening: "listening",
+    thinking: "thinking",
+    speaking: "speaking",
+  };
+  statePill.className = isMuted ? "state-idle muted" : `state-${state}`;
+  statePillLabel.textContent = isMuted ? "muted" : pillLabels[state];
 }
 
 // ---------------------------------------------------------------------------
@@ -243,6 +296,8 @@ btnMute.addEventListener("click", (e) => {
     voiceInput.resume();
     transition("listening");
   }
+  updateStatePill(currentState);
+  showToast(isMuted ? "Microphone muted" : "Microphone live", isMuted ? "info" : "success", 2000);
 });
 
 btnMenu.addEventListener("click", (e) => {
@@ -320,6 +375,7 @@ async function uploadFile(file: File) {
   }
   const prompt = `I uploaded ${data.name}. Summarize it, identify risks or useful next actions, and remember the important context.`;
   addLog(`File ingested: ${data.name}`, "system");
+  showToast(`Ingested ${data.name}`, "success");
   sendCommand(prompt, "file");
 }
 
@@ -346,4 +402,129 @@ dropZone.addEventListener("drop", async (event) => {
 
 addLog("Mission control online.", "system");
 refreshSystemMetrics();
+refreshUsage();
 setInterval(refreshSystemMetrics, 5000);
+setInterval(refreshUsage, 8000);
+
+// ---------------------------------------------------------------------------
+// Text command bar — type to JARVIS
+// ---------------------------------------------------------------------------
+
+const commandBar = document.getElementById("command-bar") as HTMLFormElement;
+const commandInput = document.getElementById("command-input") as HTMLInputElement;
+
+commandBar.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = commandInput.value.trim();
+  if (!text) return;
+  audioPlayer.stop();
+  sendCommand(text, "text");
+  commandInput.value = "";
+});
+
+// ---------------------------------------------------------------------------
+// Activity log controls — copy / clear
+// ---------------------------------------------------------------------------
+
+const btnLogCopy = document.getElementById("btn-log-copy")!;
+const btnLogClear = document.getElementById("btn-log-clear")!;
+
+function clearLog() {
+  eventLog.innerHTML = "";
+}
+
+btnLogClear.addEventListener("click", (e) => {
+  e.stopPropagation();
+  clearLog();
+});
+
+btnLogCopy.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const rows = Array.from(eventLog.querySelectorAll<HTMLElement>(".log-row")).reverse();
+  if (rows.length === 0) {
+    showToast("Activity log is empty", "info");
+    return;
+  }
+  const text = rows
+    .map((row) => {
+      const time = row.querySelector("span")?.textContent ?? "";
+      const body = row.querySelector("p")?.textContent ?? "";
+      return `[${time}] ${body}`;
+    })
+    .join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Activity log copied", "success");
+  } catch {
+    showToast("Clipboard unavailable", "error");
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Keyboard shortcuts + help overlay
+// ---------------------------------------------------------------------------
+
+const shortcutsOverlay = document.getElementById("shortcuts-overlay")!;
+const btnHelp = document.getElementById("btn-help")!;
+
+function toggleShortcuts(force?: boolean) {
+  const show = force ?? shortcutsOverlay.style.display === "none";
+  shortcutsOverlay.style.display = show ? "flex" : "none";
+}
+
+btnHelp.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleShortcuts();
+});
+
+shortcutsOverlay.addEventListener("click", () => toggleShortcuts(false));
+
+document.addEventListener("keydown", (event) => {
+  const typing =
+    document.activeElement === commandInput ||
+    document.activeElement instanceof HTMLInputElement ||
+    document.activeElement instanceof HTMLTextAreaElement;
+
+  // Escape always works: stop audio, close overlays/panels, blur input.
+  if (event.key === "Escape") {
+    if (shortcutsOverlay.style.display !== "none") {
+      toggleShortcuts(false);
+      return;
+    }
+    if (menuDropdown.style.display !== "none") {
+      menuDropdown.style.display = "none";
+      return;
+    }
+    if (typing) {
+      (document.activeElement as HTMLElement).blur();
+      return;
+    }
+    audioPlayer.stop();
+    transition("idle");
+    return;
+  }
+
+  if (typing) return;
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+  switch (event.key) {
+    case "/":
+      event.preventDefault();
+      commandInput.focus();
+      break;
+    case "m":
+    case "M":
+      (btnMute as HTMLElement).click();
+      break;
+    case "l":
+    case "L":
+      clearLog();
+      break;
+    case ",":
+      openSettings();
+      break;
+    case "?":
+      toggleShortcuts();
+      break;
+  }
+});
