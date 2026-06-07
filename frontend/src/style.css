@@ -417,3 +417,159 @@ html, body {
   display: flex;
   justify-content: flex-end;
 }
+
+/* ---------------------------------------------------------------------------
+   Cinematic HUD shell
+   --------------------------------------------------------------------------- */
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+body::before {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(14, 165, 233, 0.18), transparent 28%),
+    radial-gradient(circle at 18% 20%, rgba(59, 130, 246, 0.14), transparent 24%),
+    linear-gradient(120deg, rgba(14, 165, 233, 0.04), transparent 45%, rgba(125, 211, 252, 0.04));
+}
+
+body::after {
+  background-image:
+    linear-gradient(rgba(14, 165, 233, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14, 165, 233, 0.055) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 68%);
+  opacity: 0.45;
+}
+
+#orb-canvas {
+  z-index: 2;
+}
+
+#hud-shell {
+  position: fixed;
+  left: 28px;
+  top: 28px;
+  width: min(360px, calc(100vw - 112px));
+  padding: 18px 20px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(8, 13, 24, 0.72), rgba(8, 13, 24, 0.24));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 0 40px rgba(14, 165, 233, 0.03);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 12;
+}
+
+.hud-overline,
+.settings-kicker {
+  color: rgba(125, 211, 252, 0.7);
+  display: block;
+  font-size: 10px;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.hud-brand h1 {
+  color: rgba(240, 249, 255, 0.88);
+  font-size: clamp(26px, 5vw, 44px);
+  font-weight: 300;
+  letter-spacing: 8px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.hud-brand p,
+.settings-copy {
+  color: rgba(186, 230, 253, 0.58);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.hud-capabilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hud-capabilities span {
+  border: 1px solid rgba(14, 165, 233, 0.13);
+  border-radius: 999px;
+  color: rgba(186, 230, 253, 0.55);
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  padding: 7px 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.hero-section h3 {
+  color: rgba(240, 249, 255, 0.82);
+  font-size: 18px;
+  letter-spacing: 1.6px;
+  margin-bottom: 8px;
+}
+
+.field-hint {
+  color: rgba(125, 211, 252, 0.38);
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+
+.provider-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 14px 0;
+}
+
+.provider-card {
+  border: 1px solid rgba(14, 165, 233, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.provider-card-head {
+  align-items: center;
+  color: rgba(240, 249, 255, 0.68);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.provider-card input {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  #hud-shell {
+    left: 14px;
+    right: 14px;
+    top: 74px;
+    width: auto;
+  }
+
+  .provider-grid {
+    grid-template-columns: 1fr;
+  }
+}

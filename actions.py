@@ -8,6 +8,9 @@ Each function returns {"success": bool, "confirmation": str}.
 import asyncio
 import logging
 import os
+import platform
+import subprocess
+import webbrowser
 import re
 import time
 from pathlib import Path
@@ -88,7 +91,20 @@ def applescript_escape(s: str) -> str:
 
 
 async def open_terminal(command: str = "") -> dict:
-    """Open Terminal.app and optionally run a command. Marks it blue for JARVIS."""
+    """Open the platform terminal and optionally run a command."""
+    if platform.system() == "Windows":
+        try:
+            if command:
+                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", command], shell=False)
+            else:
+                subprocess.Popen(["cmd", "/c", "start", "cmd"], shell=False)
+            return {"success": True, "confirmation": "Terminal is open, sir."}
+        except Exception as e:
+            log.error(f"open_terminal failed on Windows: {e}")
+            return {"success": False, "confirmation": "I had trouble opening Terminal, sir."}
+
+    if platform.system() != "Darwin":
+        return {"success": False, "confirmation": "Terminal automation is not configured for this platform yet, sir."}
     if command:
         escaped = applescript_escape(command)
         script = (
@@ -122,6 +138,14 @@ async def open_terminal(command: str = "") -> dict:
 
 async def open_browser(url: str, browser: str = "chrome") -> dict:
     """Open URL in user's browser (Chrome or Firefox)."""
+    if platform.system() != "Darwin":
+        try:
+            webbrowser.open(url)
+            return {"success": True, "confirmation": "Pulled that up in your browser, sir."}
+        except Exception as e:
+            log.error(f"open_browser failed: {e}")
+            return {"success": False, "confirmation": "The browser ran into a problem, sir."}
+
     escaped_url = url.replace('"', '\\"')
 
     if browser.lower() == "firefox":
@@ -172,6 +196,9 @@ async def open_claude_in_project(project_dir: str, prompt: str) -> dict:
     claude_md.write_text(f"# Task\n\n{prompt}\n\nBuild this completely. If web app, make index.html work standalone.\n")
 
     skip_flag = " --dangerously-skip-permissions" if _SKIP_PERMISSIONS else ""
+    if platform.system() != "Darwin":
+        command = f'cd /d "{project_dir}" && claude{skip_flag}' if platform.system() == "Windows" else f'cd "{project_dir}" && claude{skip_flag}'
+        return await open_terminal(command)
     escaped_dir = applescript_escape(project_dir)
     script = (
         'tell application "Terminal"\n'

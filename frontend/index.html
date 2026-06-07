@@ -9,6 +9,20 @@
   <body>
     <canvas id="orb-canvas"></canvas>
 
+    <section id="hud-shell" aria-label="Jervis status dashboard">
+      <div class="hud-brand">
+        <span class="hud-overline">AJRUSZ Polska</span>
+        <h1>JERVIS</h1>
+        <p>Wirtualny asystent gotowy do głosu, kodu, agentów i automatyzacji.</p>
+      </div>
+      <div class="hud-capabilities">
+        <span>Voice</span>
+        <span>Agents</span>
+        <span>Calendar</span>
+        <span>Build Mode</span>
+      </div>
+    </section>
+
     <!-- Minimal controls — top right -->
     <div id="controls">
       <button id="btn-mute" title="Mute/Unmute">
@@ -33,7 +47,7 @@
     </div>
 
     <div id="status-text"></div>
-    <div id="jarvis-label">JARVIS</div>
+    <div id="jarvis-label">JERVIS · AJRUSZ POLSKA</div>
     <div id="error-text"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

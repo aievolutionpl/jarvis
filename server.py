@@ -13,6 +13,7 @@ import base64
 import json
 import logging
 import os
+import platform
 import sys
 import time
 from pathlib import Path
@@ -64,9 +65,26 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 FISH_API_KEY = os.getenv("FISH_API_KEY", "")
 FISH_VOICE_ID = os.getenv("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")  # JARVIS (MCU)
 FISH_API_URL = "https://api.fish.audio/v1/tts"
+
+# Optional providers configured by onboarding. Anthropic/Fish remain defaults,
+# while ElevenLabs, DeepSeek, and Hermes can be connected without code edits.
+TTS_PROVIDER = os.getenv("TTS_PROVIDER", "fish").strip().lower()
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")
+ELEVENLABS_MODEL_ID = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com")
+HERMES_API_KEY = os.getenv("HERMES_API_KEY", "")
+HERMES_API_URL = os.getenv("HERMES_API_URL", "")
 USER_NAME = os.getenv("USER_NAME", "sir")
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 _SKIP_PERMISSIONS = os.getenv("JARVIS_SKIP_PERMISSIONS", "true").lower() not in ("0", "false", "no")
+
+ACTION_KEYWORDS = {
+    "browse": ["browse", "search for", "look up", "google", "open website", "go to"],
+    "build": ["build", "create app", "make a website", "code this", "implement"],
+    "terminal": ["open terminal", "run command", "shell"],
+}
 
 DESKTOP_PATH = Path.home() / "Desktop"
 
@@ -1122,36 +1140,71 @@ _last_greeting_time: float = 0
 
 
 # ---------------------------------------------------------------------------
-# TTS (Fish Audio)
+# TTS (Fish Audio / ElevenLabs)
 # ---------------------------------------------------------------------------
 
-async def synthesize_speech(text: str) -> Optional[bytes]:
+async def _synthesize_fish(text: str) -> Optional[bytes]:
     """Generate speech audio from text using Fish Audio TTS."""
     if not FISH_API_KEY:
-        log.warning("FISH_API_KEY not set, skipping TTS")
+        log.warning("FISH_API_KEY not set, skipping Fish Audio TTS")
         return None
 
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        response = await http.post(
+            FISH_API_URL,
+            headers={
+                "Authorization": f"Bearer {FISH_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "text": text,
+                "reference_id": FISH_VOICE_ID,
+                "format": "mp3",
+            },
+        )
+        if response.status_code == 200:
+            return response.content
+        log.error(f"Fish Audio TTS error: {response.status_code}")
+        return None
+
+
+async def _synthesize_elevenlabs(text: str) -> Optional[bytes]:
+    """Generate speech audio from text using ElevenLabs TTS."""
+    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
+        log.warning("ElevenLabs key or voice ID not set, skipping ElevenLabs TTS")
+        return None
+
+    async with httpx.AsyncClient(timeout=20.0) as http:
+        response = await http.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
+            headers={
+                "xi-api-key": ELEVENLABS_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json={
+                "text": text,
+                "model_id": ELEVENLABS_MODEL_ID,
+                "output_format": "mp3_44100_128",
+            },
+        )
+        if response.status_code == 200:
+            return response.content
+        log.error(f"ElevenLabs TTS error: {response.status_code}")
+        return None
+
+
+async def synthesize_speech(text: str) -> Optional[bytes]:
+    """Generate speech audio from the configured TTS provider."""
     try:
-        async with httpx.AsyncClient(timeout=15.0) as http:
-            response = await http.post(
-                FISH_API_URL,
-                headers={
-                    "Authorization": f"Bearer {FISH_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "text": text,
-                    "reference_id": FISH_VOICE_ID,
-                    "format": "mp3",
-                },
-            )
-            if response.status_code == 200:
-                _session_tokens["tts_calls"] += 1
-                _append_usage_entry(0, 0, "tts")
-                return response.content
-            else:
-                log.error(f"TTS error: {response.status_code}")
-                return None
+        if TTS_PROVIDER == "elevenlabs":
+            audio = await _synthesize_elevenlabs(text)
+        else:
+            audio = await _synthesize_fish(text)
+
+        if audio:
+            _session_tokens["tts_calls"] += 1
+            _append_usage_entry(0, 0, "tts")
+        return audio
     except Exception as e:
         log.error(f"TTS error: {e}")
         return None
@@ -2460,6 +2513,8 @@ def _read_env() -> tuple[list[str], dict[str, str]]:
 
 def _write_env_key(key: str, value: str) -> None:
     """Update a single key in .env, preserving comments and order."""
+    global FISH_API_KEY, FISH_VOICE_ID, TTS_PROVIDER, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL_ID
+    global DEEPSEEK_API_KEY, DEEPSEEK_API_URL, HERMES_API_KEY, HERMES_API_URL, ANTHROPIC_API_KEY, USER_NAME
     lines, _ = _read_env()
     found = False
     new_lines = []
@@ -2476,6 +2531,8 @@ def _write_env_key(key: str, value: str) -> None:
         new_lines.append(f"{key}={value}")
     _env_file_path().write_text("\n".join(new_lines) + "\n")
     os.environ[key] = value
+    if key in globals():
+        globals()[key] = value
 
 class KeyUpdate(BaseModel):
     key_name: str
@@ -2491,10 +2548,18 @@ class PreferencesUpdate(BaseModel):
 
 @app.post("/api/settings/keys")
 async def api_settings_keys(body: KeyUpdate):
-    allowed = {"ANTHROPIC_API_KEY", "FISH_API_KEY", "FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
+    global anthropic_client
+    allowed = {
+        "ANTHROPIC_API_KEY", "FISH_API_KEY", "FISH_VOICE_ID", "TTS_PROVIDER",
+        "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL_ID",
+        "DEEPSEEK_API_KEY", "DEEPSEEK_API_URL", "HERMES_API_KEY", "HERMES_API_URL",
+        "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS",
+    }
     if body.key_name not in allowed:
         return JSONResponse({"success": False, "error": "Invalid key name"}, status_code=400)
     _write_env_key(body.key_name, body.key_value)
+    if body.key_name == "ANTHROPIC_API_KEY" and body.key_value:
+        anthropic_client = anthropic.AsyncAnthropic(api_key=body.key_value)
     return {"success": True}
 
 @app.post("/api/settings/test-anthropic")
@@ -2506,6 +2571,51 @@ async def api_test_anthropic(body: KeyTest):
         client = anthropic.AsyncAnthropic(api_key=key)
         await client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=10, messages=[{"role": "user", "content": "Hi"}])
         return {"valid": True}
+    except Exception as e:
+        return {"valid": False, "error": str(e)[:200]}
+
+@app.post("/api/settings/test-elevenlabs")
+async def api_test_elevenlabs(body: KeyTest):
+    key = body.key_value or os.getenv("ELEVENLABS_API_KEY", "")
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "")
+    if not key:
+        return {"valid": False, "error": "No key provided"}
+    if not voice_id:
+        return {"valid": False, "error": "Add ELEVENLABS_VOICE_ID before testing"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"https://api.elevenlabs.io/v1/voices/{voice_id}",
+                headers={"xi-api-key": key},
+            )
+            return {"valid": resp.status_code == 200, "error": None if resp.status_code == 200 else f"HTTP {resp.status_code}"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)[:200]}
+
+@app.post("/api/settings/test-deepseek")
+async def api_test_deepseek(body: KeyTest):
+    key = body.key_value or os.getenv("DEEPSEEK_API_KEY", "")
+    base_url = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com").rstrip("/")
+    if not key:
+        return {"valid": False, "error": "No key provided"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{base_url}/models", headers={"Authorization": f"Bearer {key}"})
+            return {"valid": resp.status_code == 200, "error": None if resp.status_code == 200 else f"HTTP {resp.status_code}"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)[:200]}
+
+@app.post("/api/settings/test-hermes")
+async def api_test_hermes(body: KeyTest):
+    key = body.key_value or os.getenv("HERMES_API_KEY", "")
+    base_url = os.getenv("HERMES_API_URL", "").rstrip("/")
+    if not base_url:
+        return {"valid": False, "error": "No Hermes URL provided"}
+    try:
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{base_url}/health", headers=headers)
+            return {"valid": resp.status_code < 500, "error": None if resp.status_code < 500 else f"HTTP {resp.status_code}"}
     except Exception as e:
         return {"valid": False, "error": str(e)[:200]}
 
@@ -2560,6 +2670,11 @@ async def api_settings_status():
             "anthropic": bool(env_dict.get("ANTHROPIC_API_KEY", "").strip() and env_dict.get("ANTHROPIC_API_KEY", "") != "your-anthropic-api-key-here"),
             "fish_audio": bool(env_dict.get("FISH_API_KEY", "").strip() and env_dict.get("FISH_API_KEY", "") != "your-fish-audio-api-key-here"),
             "fish_voice_id": bool(env_dict.get("FISH_VOICE_ID", "").strip()),
+            "elevenlabs": bool(env_dict.get("ELEVENLABS_API_KEY", "").strip() and env_dict.get("ELEVENLABS_VOICE_ID", "").strip()),
+            "deepseek": bool(env_dict.get("DEEPSEEK_API_KEY", "").strip()),
+            "hermes": bool(env_dict.get("HERMES_API_URL", "").strip()),
+            "tts_provider": env_dict.get("TTS_PROVIDER", "fish"),
+            "platform": platform.system(),
             "user_name": env_dict.get("USER_NAME", ""),
         },
     }

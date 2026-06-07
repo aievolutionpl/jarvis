@@ -22,6 +22,11 @@ interface StatusResponse {
     anthropic: boolean;
     fish_audio: boolean;
     fish_voice_id: boolean;
+    elevenlabs: boolean;
+    deepseek: boolean;
+    hermes: boolean;
+    tts_provider: string;
+    platform: string;
     user_name: string;
   };
 }
@@ -79,11 +84,13 @@ function buildPanelHTML(): string {
       <div class="settings-body">
 
         <!-- API Keys -->
-        <section class="settings-section" id="section-api-keys">
-          <h3>API Keys</h3>
+        <section class="settings-section hero-section" id="section-api-keys">
+          <p class="settings-kicker">AJRUSZ Polska · Jervis Virtual Assistant</p>
+          <h3>Provider Onboarding</h3>
+          <p class="settings-copy">Connect the model, voice and agent APIs you want Jervis to use. Required fields are Anthropic plus one voice provider.</p>
 
           <div class="settings-field">
-            <label>Anthropic API Key</label>
+            <label>Anthropic API Key <span class="field-hint">main brain</span></label>
             <div class="settings-input-row">
               <input type="password" id="input-anthropic-key" placeholder="sk-ant-..." />
               <button class="settings-btn" id="btn-test-anthropic">Test</button>
@@ -92,24 +99,46 @@ function buildPanelHTML(): string {
           </div>
 
           <div class="settings-field">
-            <label>Fish Audio API Key</label>
-            <div class="settings-input-row">
-              <input type="password" id="input-fish-key" placeholder="Fish Audio key..." />
-              <button class="settings-btn" id="btn-test-fish">Test</button>
-              <span class="status-dot" id="status-fish"></span>
+            <label>Voice Provider</label>
+            <select id="input-tts-provider">
+              <option value="fish">Fish Audio</option>
+              <option value="elevenlabs">ElevenLabs</option>
+            </select>
+          </div>
+
+          <div class="provider-grid">
+            <div class="provider-card">
+              <div class="provider-card-head"><strong>Fish Audio</strong><span class="status-dot" id="status-fish"></span></div>
+              <input type="password" id="input-fish-key" placeholder="Fish Audio API key" />
+              <input type="text" id="input-fish-voice-id" placeholder="Fish Voice ID" />
+              <button class="settings-btn" id="btn-test-fish">Test Fish</button>
+            </div>
+            <div class="provider-card">
+              <div class="provider-card-head"><strong>ElevenLabs</strong><span class="status-dot" id="status-elevenlabs"></span></div>
+              <input type="password" id="input-elevenlabs-key" placeholder="ElevenLabs API key" />
+              <input type="text" id="input-elevenlabs-voice-id" placeholder="ElevenLabs Voice ID" />
+              <input type="text" id="input-elevenlabs-model-id" placeholder="eleven_multilingual_v2" />
+              <button class="settings-btn" id="btn-test-elevenlabs">Test ElevenLabs</button>
             </div>
           </div>
 
-          <div class="settings-field">
-            <label>Fish Voice ID</label>
-            <div class="settings-input-row">
-              <input type="text" id="input-fish-voice-id" placeholder="612b878b113047d9a770c069c8b4fdfe" />
-              <button class="settings-btn" id="btn-save-voice-id">Save</button>
+          <div class="provider-grid">
+            <div class="provider-card">
+              <div class="provider-card-head"><strong>DeepSeek API</strong><span class="status-dot" id="status-deepseek"></span></div>
+              <input type="password" id="input-deepseek-key" placeholder="DeepSeek API key" />
+              <input type="text" id="input-deepseek-url" placeholder="https://api.deepseek.com" />
+              <button class="settings-btn" id="btn-test-deepseek">Test DeepSeek</button>
+            </div>
+            <div class="provider-card">
+              <div class="provider-card-head"><strong>Hermes Agent</strong><span class="status-dot" id="status-hermes"></span></div>
+              <input type="password" id="input-hermes-key" placeholder="Hermes API key (optional)" />
+              <input type="text" id="input-hermes-url" placeholder="https://hermes.local/api" />
+              <button class="settings-btn" id="btn-test-hermes">Test Hermes</button>
             </div>
           </div>
 
           <div class="settings-actions">
-            <button class="settings-btn primary" id="btn-save-keys">Save Keys</button>
+            <button class="settings-btn primary" id="btn-save-keys">Save All Connections</button>
           </div>
         </section>
 
@@ -217,6 +246,11 @@ async function loadStatus() {
     // API key status dots
     setDotStatus("status-anthropic", status.env_keys_set.anthropic ? "green" : "red");
     setDotStatus("status-fish", status.env_keys_set.fish_audio ? "green" : "red");
+    setDotStatus("status-elevenlabs", status.env_keys_set.elevenlabs ? "green" : "red");
+    setDotStatus("status-deepseek", status.env_keys_set.deepseek ? "green" : "off");
+    setDotStatus("status-hermes", status.env_keys_set.hermes ? "green" : "off");
+    const ttsEl = document.getElementById("input-tts-provider") as HTMLSelectElement | null;
+    if (ttsEl) ttsEl.value = status.env_keys_set.tts_provider || "fish";
 
     // System info
     const memEl = document.getElementById("sysinfo-memory");
@@ -257,24 +291,26 @@ function wireEvents() {
 
   // Save keys
   document.getElementById("btn-save-keys")?.addEventListener("click", async () => {
-    const anthropicKey = (document.getElementById("input-anthropic-key") as HTMLInputElement).value.trim();
-    const fishKey = (document.getElementById("input-fish-key") as HTMLInputElement).value.trim();
+    const fields: Array<[string, string]> = [
+      ["ANTHROPIC_API_KEY", "input-anthropic-key"],
+      ["TTS_PROVIDER", "input-tts-provider"],
+      ["FISH_API_KEY", "input-fish-key"],
+      ["FISH_VOICE_ID", "input-fish-voice-id"],
+      ["ELEVENLABS_API_KEY", "input-elevenlabs-key"],
+      ["ELEVENLABS_VOICE_ID", "input-elevenlabs-voice-id"],
+      ["ELEVENLABS_MODEL_ID", "input-elevenlabs-model-id"],
+      ["DEEPSEEK_API_KEY", "input-deepseek-key"],
+      ["DEEPSEEK_API_URL", "input-deepseek-url"],
+      ["HERMES_API_KEY", "input-hermes-key"],
+      ["HERMES_API_URL", "input-hermes-url"],
+    ];
 
-    if (anthropicKey) {
-      await apiPost("/api/settings/keys", { key_name: "ANTHROPIC_API_KEY", key_value: anthropicKey });
-    }
-    if (fishKey) {
-      await apiPost("/api/settings/keys", { key_name: "FISH_API_KEY", key_value: fishKey });
+    for (const [keyName, inputId] of fields) {
+      const input = document.getElementById(inputId) as HTMLInputElement | HTMLSelectElement | null;
+      const value = input?.value.trim();
+      if (value) await apiPost("/api/settings/keys", { key_name: keyName, key_value: value });
     }
     await loadStatus();
-  });
-
-  // Save voice ID
-  document.getElementById("btn-save-voice-id")?.addEventListener("click", async () => {
-    const voiceId = (document.getElementById("input-fish-voice-id") as HTMLInputElement).value.trim();
-    if (voiceId) {
-      await apiPost("/api/settings/keys", { key_name: "FISH_VOICE_ID", key_value: voiceId });
-    }
   });
 
   // Test Anthropic
@@ -289,17 +325,23 @@ function wireEvents() {
     }
   });
 
-  // Test Fish
-  document.getElementById("btn-test-fish")?.addEventListener("click", async () => {
-    setDotStatus("status-fish", "yellow");
-    const key = (document.getElementById("input-fish-key") as HTMLInputElement).value.trim();
-    try {
-      const result = await apiPost<{ valid: boolean; error?: string }>("/api/settings/test-fish", { key_value: key || undefined });
-      setDotStatus("status-fish", result.valid ? "green" : "red");
-    } catch {
-      setDotStatus("status-fish", "red");
-    }
-  });
+  const testProvider = (buttonId: string, dotId: string, inputId: string, endpoint: string) => {
+    document.getElementById(buttonId)?.addEventListener("click", async () => {
+      setDotStatus(dotId, "yellow");
+      const key = (document.getElementById(inputId) as HTMLInputElement).value.trim();
+      try {
+        const result = await apiPost<{ valid: boolean; error?: string }>(endpoint, { key_value: key || undefined });
+        setDotStatus(dotId, result.valid ? "green" : "red");
+      } catch {
+        setDotStatus(dotId, "red");
+      }
+    });
+  };
+
+  testProvider("btn-test-fish", "status-fish", "input-fish-key", "/api/settings/test-fish");
+  testProvider("btn-test-elevenlabs", "status-elevenlabs", "input-elevenlabs-key", "/api/settings/test-elevenlabs");
+  testProvider("btn-test-deepseek", "status-deepseek", "input-deepseek-key", "/api/settings/test-deepseek");
+  testProvider("btn-test-hermes", "status-hermes", "input-hermes-key", "/api/settings/test-hermes");
 
   // Save preferences
   document.getElementById("btn-save-prefs")?.addEventListener("click", async () => {
