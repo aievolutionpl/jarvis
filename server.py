@@ -13,6 +13,8 @@ import base64
 import json
 import logging
 import os
+import platform
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -37,7 +39,7 @@ import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from actions import execute_action, monitor_build, open_terminal, open_browser, open_claude_in_project, _generate_project_name, prompt_existing_terminal, applescript_escape
 from work_mode import WorkSession, is_casual_question
@@ -369,6 +371,12 @@ class ClaudeTask:
         return (end - self.started_at).total_seconds()
 
 
+class IntakeFileRequest(BaseModel):
+    name: str = Field(..., max_length=160)
+    mime_type: str = Field(default="text/plain", max_length=120)
+    content: str = Field(..., max_length=524288)
+
+
 class TaskRequest(BaseModel):
     prompt: str
     working_dir: str = "."
@@ -685,6 +693,12 @@ def format_projects_for_prompt(projects: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 # Speech-to-Text Corrections
 # ---------------------------------------------------------------------------
+
+ACTION_KEYWORDS = {
+    "open_terminal": ["open terminal", "launch terminal", "open claude code", "launch claude code"],
+    "browse": ["browse", "search for", "look up", "google", "go to", "open website", "pull up"],
+    "build": ["build", "create app", "make app", "generate project", "scaffold"],
+}
 
 STT_CORRECTIONS = {
     r"\bcloud code\b": "Claude Code",
@@ -1449,6 +1463,65 @@ async def tts_test():
     if audio:
         return {"audio": base64.b64encode(audio).decode()}
     return {"audio": None, "error": "TTS failed"}
+
+
+
+
+@app.get("/api/system")
+async def api_system():
+    """Lightweight HUD telemetry for the browser mission-control panel."""
+    uptime = int(time.time() - _session_start)
+    try:
+        load_average = os.getloadavg()[0]
+    except (AttributeError, OSError):
+        load_average = None
+
+    disk = shutil.disk_usage(Path(__file__).parent)
+    return {
+        "status": "online",
+        "uptime_seconds": uptime,
+        "load_average": load_average,
+        "disk_free_gb": round(disk.free / (1024 ** 3), 2),
+        "disk_total_gb": round(disk.total / (1024 ** 3), 2),
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "connected_clients": len(task_manager._websockets),
+    }
+
+
+@app.post("/api/intake-file")
+async def api_intake_file(req: IntakeFileRequest):
+    """Save a small dropped text/code file and index a summary as a JARVIS note."""
+    safe_name = Path(req.name).name.replace("/", "_").replace("\\", "_")
+    if not safe_name:
+        return JSONResponse(status_code=400, content={"error": "Invalid file name"})
+
+    upload_dir = Path(__file__).parent / "data" / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target = upload_dir / f"{stamp}-{safe_name}"
+    target.write_text(req.content, encoding="utf-8", errors="replace")
+
+    preview = req.content[:1800].strip()
+    title = f"Uploaded file: {safe_name}"
+    note = (
+        f"File uploaded through the JARVIS mission-control HUD.\n"
+        f"Path: {target}\n"
+        f"MIME: {req.mime_type}\n\n"
+        f"Preview:\n{preview}"
+    )
+    try:
+        create_note(title=title, content=note, topic="uploads", tags=["upload", "hud", safe_name])
+    except Exception as e:
+        log.warning(f"Could not index uploaded file note: {e}")
+
+    return {
+        "status": "stored",
+        "name": safe_name,
+        "path": str(target),
+        "bytes": len(req.content.encode("utf-8")),
+        "preview": preview[:500],
+    }
 
 
 @app.get("/api/usage")
