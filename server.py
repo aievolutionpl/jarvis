@@ -50,6 +50,7 @@ from memory import (
     remember, recall, get_open_tasks, create_task, complete_task, search_tasks,
     create_note, search_notes, get_tasks_for_date, build_memory_context,
     format_tasks_for_voice, extract_memories, get_important_memories,
+    get_recent_memories, delete_memory, get_all_memories, memory_stats,
 )
 from notes_access import get_recent_notes, read_note, search_notes_apple, create_apple_note
 from dispatch_registry import DispatchRegistry
@@ -3146,6 +3147,165 @@ async def api_save_preferences(body: PreferencesUpdate):
     if body.user_name:
         _set_user_name(body.user_name)
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Memory API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/memories")
+async def api_memories(limit: int = 100, offset: int = 0, type: str | None = None):
+    """List memories with pagination and optional type filter."""
+    from memory import get_all_memories, memory_stats
+    return {
+        "memories": get_all_memories(limit=limit, offset=offset, mem_type=type),
+        "stats": memory_stats(),
+    }
+
+
+@app.get("/api/memories/stats")
+async def api_memory_stats():
+    from memory import memory_stats
+    return memory_stats()
+
+
+@app.get("/api/memories/search")
+async def api_memory_search(q: str = ""):
+    if not q.strip():
+        return {"memories": []}
+    return {"memories": recall(q, limit=20)}
+
+
+class MemoryCreate(BaseModel):
+    content: str
+    type: str = "fact"
+    importance: int = 5
+    source: str = "manual"
+
+
+@app.post("/api/memories")
+async def api_memory_create(body: MemoryCreate):
+    mem_id = remember(body.content, mem_type=body.type, source=body.source, importance=body.importance)
+    return {"id": mem_id, "success": True}
+
+
+@app.delete("/api/memories/{mem_id}")
+async def api_memory_delete(mem_id: int):
+    from memory import delete_memory
+    ok = delete_memory(mem_id)
+    if not ok:
+        return JSONResponse({"error": "Memory not found"}, status_code=404)
+    return {"success": True, "id": mem_id}
+
+
+# ---------------------------------------------------------------------------
+# Task-Memory API (JARVIS internal task system, distinct from Claude Code tasks)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/tasks-memory")
+async def api_tasks_memory(project: str | None = None):
+    tasks = get_open_tasks(project=project)
+    return {"tasks": tasks}
+
+
+class TaskMemoryCreate(BaseModel):
+    title: str
+    description: str = ""
+    priority: str = "medium"
+    due_date: str = ""
+    due_time: str = ""
+    project: str = ""
+    tags: list[str] = Field(default_factory=list)
+
+
+@app.post("/api/tasks-memory")
+async def api_task_memory_create(body: TaskMemoryCreate):
+    task_id = create_task(
+        title=body.title, description=body.description,
+        priority=body.priority, due_date=body.due_date,
+        due_time=body.due_time, project=body.project, tags=body.tags,
+    )
+    return {"id": task_id, "success": True}
+
+
+@app.post("/api/tasks-memory/{task_id}/complete")
+async def api_task_memory_complete(task_id: int):
+    complete_task(task_id)
+    return {"success": True, "id": task_id}
+
+
+# ---------------------------------------------------------------------------
+# Agent / Workflow Status API
+# ---------------------------------------------------------------------------
+
+# In-memory agent state (shared across the process)
+_agent_state = {
+    "status": "idle",  # idle, planning, executing, verifying
+    "current_goal": None,
+    "last_action": None,
+    "action_count": 0,
+    "started_at": time.time(),
+}
+_agent_history: list[dict] = []  # Recent agent actions
+
+
+@app.get("/api/agent/status")
+async def api_agent_status():
+    actions = action_log.list_actions(limit=10)
+    return {
+        **_agent_state,
+        "uptime": int(time.time() - _agent_state["started_at"]),
+        "recent_actions": actions,
+    }
+
+
+@app.get("/api/agent/history")
+async def api_agent_history(limit: int = 30):
+    return {"history": action_log.list_actions(limit=limit)}
+
+
+class GoalSubmit(BaseModel):
+    goal: str
+    priority: str = "medium"
+
+
+@app.post("/api/agent/goal")
+async def api_agent_goal(body: GoalSubmit):
+    """Submit a high-level goal. Creates a task and logs it."""
+    task_id = create_task(
+        title=body.goal,
+        description=f"Goal submitted via UI: {body.goal}",
+        priority=body.priority,
+    )
+    _agent_state["current_goal"] = body.goal
+    _agent_state["status"] = "planning"
+    action_log.record_action(
+        "goal_submitted", f"Goal: {body.goal}",
+        risk="low", target="agent",
+        details={"goal": body.goal, "priority": body.priority, "task_id": task_id},
+    )
+    return {"success": True, "task_id": task_id, "goal": body.goal}
+
+
+@app.get("/api/conversation/summary")
+async def api_conversation_summary():
+    """Get token usage and conversation stats."""
+    uptime = int(time.time() - _session_start)
+    today = _get_usage_for_period(86400)
+    mapped_session = {
+        "input_tokens": _session_tokens.get("input", 0),
+        "output_tokens": _session_tokens.get("output", 0),
+        "api_calls": _session_tokens.get("api_calls", 0),
+        "tts_calls": _session_tokens.get("tts_calls", 0),
+    }
+    return {
+        "uptime_seconds": uptime,
+        "session_tokens": mapped_session,
+        "today_tokens": today,
+        "today_cost": round(_cost_from_tokens(today["input_tokens"], today["output_tokens"]), 4),
+        "agent_status": _agent_state["status"],
+    }
+
 
 # ---------------------------------------------------------------------------
 # Control endpoints (restart, fix-self)

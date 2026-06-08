@@ -20,4 +20,4 @@ if ($IsWindows -or $env:OS -eq "Windows_NT") {
 
 Start-Process powershell -ArgumentList @("-NoExit", "-Command", "cd '$Root'; python -m pip install -r requirements.txt; python server.py")
 Start-Process powershell -ArgumentList @("-NoExit", "-Command", "cd '$Root\frontend'; npm install; npm run dev")
-Write-Host "JARVIS is starting. Open Chrome at http://localhost:5173"
+Write-Host "JARVIS is starting. Open Chrome at http://localhost:5180"
