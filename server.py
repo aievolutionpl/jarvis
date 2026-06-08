@@ -55,6 +55,9 @@ from notes_access import get_recent_notes, read_note, search_notes_apple, create
 from dispatch_registry import DispatchRegistry
 from planner import TaskPlanner, detect_planning_mode, BYPASS_PHRASES
 from integrations import provider_env_keys, providers_for_status, skills_for_status
+import skills as skills_system
+import onboarding as onboarding_system
+import mcp_registry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("jarvis")
@@ -69,6 +72,12 @@ FISH_VOICE_ID = os.getenv("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")  
 FISH_API_URL = "https://api.fish.audio/v1/tts"
 USER_NAME = os.getenv("USER_NAME", "sir")
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _set_user_name(value: str):
+    """Update the in-process user name (used after onboarding learns it)."""
+    global USER_NAME
+    USER_NAME = value
 _SKIP_PERMISSIONS = os.getenv("JARVIS_SKIP_PERMISSIONS", "true").lower() not in ("0", "false", "no")
 
 DESKTOP_PATH = Path.home() / "Desktop"
@@ -115,6 +124,8 @@ YOUR CAPABILITIES (these are REAL and ACTIVE — you CAN do all of these RIGHT N
 - You CAN manage tasks — create, complete, and list to-do items with priorities and due dates
 - You CAN help plan {user_name}'s day — combine calendar events, tasks, and priorities into an organized plan
 - You CAN remember facts about {user_name} — preferences, decisions, goals. Use [ACTION:REMEMBER] to store important info.
+- You HAVE a library of installable skills for small-business work (sales, marketing, finance, HR, support, ops, and more). Active skills appear under ACTIVE SKILLS. When a skill is marked executable, use [ACTION:RUN_SKILL] slug ||| {{json params}} to actually produce the artifact (e.g. an invoice). Suggest enabling a relevant skill when one would help.
+- You CAN connect to external tools (email, docs, CRM, database, design) over MCP. Connected tools appear under CONNECTED TOOLS. If a needed tool isn't connected, suggest connecting it in Settings.
 
 DAY PLANNING:
 When {user_name} asks to plan his day or schedule, DO NOT dispatch to a project. Instead:
@@ -829,7 +840,7 @@ def extract_action(response: str) -> tuple[str, dict | None]:
     Returns (clean_text_for_tts, action_dict_or_none).
     """
     match = _action_re.search(
-        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN)\]\s*(.*?)$',
+        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL)\]\s*(.*?)$',
         response, _action_re.DOTALL,
     )
     if match:
@@ -1219,6 +1230,31 @@ async def generate_response(
     memory_ctx = build_memory_context(text)
     if memory_ctx:
         system += f"\n\nJARVIS MEMORY:\n{memory_ctx}"
+
+    # User profile (learned during onboarding)
+    profile_ctx = onboarding_system.profile_prompt()
+    if profile_ctx:
+        system += f"\n\n{profile_ctx}"
+
+    # Onboarding takes priority — if active, steer the discovery conversation
+    onboarding_ctx = onboarding_system.onboarding_prompt()
+    if onboarding_ctx:
+        system += f"\n\n{onboarding_ctx}"
+
+    # Active skills and a lightweight menu of what else can be enabled
+    skills_ctx = skills_system.enabled_skills_prompt()
+    if skills_ctx:
+        system += f"\n\n{skills_ctx}"
+    if onboarding_ctx:
+        # Only surface the broader catalog while onboarding, to keep prompts lean
+        catalog_ctx = skills_system.catalog_index_prompt()
+        if catalog_ctx:
+            system += f"\n\n{catalog_ctx}"
+
+    # Connected external tools via MCP
+    mcp_ctx = mcp_registry.mcp_prompt()
+    if mcp_ctx:
+        system += f"\n\n{mcp_ctx}"
 
     # Three-tier memory — inject rolling summary of earlier conversation
     if session_summary:
@@ -2439,6 +2475,53 @@ async def voice_handler(ws: WebSocket):
                                             except Exception:
                                                 pass
                                     asyncio.create_task(_read_and_report(embedded_action["target"].strip(), ws))
+                                elif embedded_action["action"] == "profile":
+                                    # Store a piece of the user profile learned during onboarding
+                                    target = embedded_action["target"]
+                                    if "|||" in target:
+                                        key, _, value = target.partition("|||")
+                                        key = key.strip().lower().replace(" ", "_")
+                                        value = value.strip()
+                                        if key and value:
+                                            onboarding_system.set_profile(key, value)
+                                            onboarding_system.mark_turn()
+                                            # Mirror the user's name into the .env so the rest of JARVIS uses it
+                                            if key == "name":
+                                                try:
+                                                    _write_env_key("USER_NAME", value)
+                                                    _set_user_name(value)
+                                                except Exception:
+                                                    pass
+                                            log.info(f"Profile set: {key}={value[:40]}")
+                                elif embedded_action["action"] == "recommend_skills":
+                                    goal = embedded_action["target"].strip()
+                                    recs = skills_system.recommend_skills(goal, limit=6)
+                                    for s in recs[:4]:
+                                        skills_system.set_skill_enabled(s["slug"], True)
+                                    # Also recommend matching MCP tools from the profile's tools
+                                    tools_text = onboarding_system.get_profile().get("tools", "") + " " + goal
+                                    for srv in mcp_registry.recommend_servers(tools_text, limit=3):
+                                        log.info(f"Onboarding suggests MCP: {srv['name']}")
+                                    log.info(f"Recommended/enabled skills for goal '{goal[:40]}': {[s['slug'] for s in recs[:4]]}")
+                                elif embedded_action["action"] == "onboard_done":
+                                    onboarding_system.complete()
+                                    log.info("Onboarding marked complete")
+                                elif embedded_action["action"] == "run_skill":
+                                    # [ACTION:RUN_SKILL] slug ||| optional json params
+                                    target = embedded_action["target"]
+                                    slug, _, raw = target.partition("|||")
+                                    slug = slug.strip()
+                                    params = {}
+                                    if raw.strip():
+                                        try:
+                                            params = json.loads(raw.strip())
+                                        except Exception:
+                                            params = {"description": raw.strip()}
+                                    result = skills_system.run_skill(slug, params)
+                                    if result.get("error"):
+                                        log.warning(f"RUN_SKILL {slug} failed: {result['error']}")
+                                    else:
+                                        log.info(f"RUN_SKILL {slug}: {result.get('summary')}")
 
                 # Update history
                 history.append({"role": "user", "content": user_text})
@@ -2638,6 +2721,9 @@ async def api_settings_status():
         },
         "providers": providers_for_status(env_dict),
         "skills": skills_for_status(),
+        "skill_counts": skills_system.counts(),
+        "mcp_connected": len(mcp_registry.connected_servers()),
+        "onboarding": onboarding_system.get_state(),
         "platform": platform.system(),
     }
 
@@ -2646,9 +2732,118 @@ async def api_settings_providers():
     _, env_dict = _read_env()
     return {"providers": providers_for_status(env_dict)}
 
+
+# ---------------------------------------------------------------------------
+# Skills API
+# ---------------------------------------------------------------------------
+
 @app.get("/api/skills")
 async def api_skills():
-    return {"skills": skills_for_status()}
+    """Full skill catalog with categories and counts."""
+    return {
+        "skills": skills_system.list_skills(),
+        "categories": skills_system.categories_summary(),
+        "counts": skills_system.counts(),
+        "packs": skills_for_status(),
+    }
+
+
+@app.get("/api/skills/search")
+async def api_skills_search(q: str = ""):
+    return {"skills": skills_system.search_skills(q)}
+
+
+class SkillToggle(BaseModel):
+    enabled: bool
+
+
+@app.post("/api/skills/{slug}/toggle")
+async def api_skill_toggle(slug: str, body: SkillToggle):
+    ok = skills_system.set_skill_enabled(slug, body.enabled)
+    if not ok:
+        return JSONResponse({"error": "Unknown skill"}, status_code=404)
+    return {"success": True, "slug": slug, "enabled": body.enabled, "counts": skills_system.counts()}
+
+
+class SkillRun(BaseModel):
+    params: dict = Field(default_factory=dict)
+
+
+@app.post("/api/skills/{slug}/run")
+async def api_skill_run(slug: str, body: SkillRun):
+    skill = skills_system.get_skill(slug)
+    if not skill:
+        return JSONResponse({"error": "Unknown skill"}, status_code=404)
+    if not skill["executable"]:
+        return JSONResponse({"error": "Skill is not executable"}, status_code=400)
+    return skills_system.run_skill(slug, body.params)
+
+
+# ---------------------------------------------------------------------------
+# MCP API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/mcp")
+async def api_mcp_list():
+    return {"servers": mcp_registry.list_servers()}
+
+
+class McpConnect(BaseModel):
+    config: dict = Field(default_factory=dict)
+
+
+@app.post("/api/mcp/{server_id}/connect")
+async def api_mcp_connect(server_id: str, body: McpConnect):
+    result = mcp_registry.connect(server_id, body.config)
+    if result.get("error"):
+        return JSONResponse(result, status_code=404)
+    return result
+
+
+@app.post("/api/mcp/{server_id}/disconnect")
+async def api_mcp_disconnect(server_id: str):
+    return mcp_registry.disconnect(server_id)
+
+
+# ---------------------------------------------------------------------------
+# Onboarding API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/onboarding")
+async def api_onboarding_get():
+    return onboarding_system.export()
+
+
+class ProfileUpdate(BaseModel):
+    profile: dict = Field(default_factory=dict)
+
+
+@app.post("/api/onboarding/profile")
+async def api_onboarding_profile(body: ProfileUpdate):
+    onboarding_system.set_profile_many(body.profile)
+    name = body.profile.get("name")
+    if name and str(name).strip():
+        _write_env_key("USER_NAME", str(name).strip())
+        _set_user_name(str(name).strip())
+    return onboarding_system.export()
+
+
+@app.post("/api/onboarding/complete")
+async def api_onboarding_complete():
+    onboarding_system.complete()
+    return onboarding_system.get_state()
+
+
+@app.post("/api/onboarding/skip")
+async def api_onboarding_skip():
+    onboarding_system.skip()
+    return onboarding_system.get_state()
+
+
+@app.post("/api/onboarding/reset")
+async def api_onboarding_reset():
+    onboarding_system.reset()
+    return onboarding_system.get_state()
 
 @app.get("/api/settings/preferences")
 async def api_get_preferences():

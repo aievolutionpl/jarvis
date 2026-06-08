@@ -30,6 +30,36 @@ interface SkillPack {
   install_hint: string;
 }
 
+interface Skill {
+  slug: string;
+  name: string;
+  category: string;
+  description: string;
+  when_to_use: string;
+  instructions: string;
+  executable: boolean;
+  enabled: boolean;
+}
+
+interface SkillCategory {
+  category: string;
+  total: number;
+  enabled: number;
+}
+
+interface McpServer {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  capabilities: string[];
+  connected: boolean;
+  status: string;
+  auth_required: boolean;
+  auth_present: boolean;
+  docs_url: string;
+}
+
 interface StatusResponse {
   claude_code_installed: boolean;
   calendar_accessible: boolean;
@@ -48,6 +78,9 @@ interface StatusResponse {
   };
   providers: ApiProvider[];
   skills: SkillPack[];
+  skill_counts?: { total: number; enabled: number };
+  mcp_connected?: number;
+  onboarding?: { status: string; turns: number };
 }
 
 interface PreferencesResponse {
@@ -103,7 +136,7 @@ function buildPanelHTML(): string {
           <p>Configure the core brain, voice, research, and optional Hermes-compatible connectors without editing files by hand.</p>
         </div>
         <div class="onboarding-steps" id="onboarding-steps">
-          <span class="active">1 Keys</span><span>2 Skills</span><span>3 Profile</span><span>4 Launch</span>
+          <span class="active">1 Keys</span><span>2 Skills</span><span>3 Tools</span><span>4 Profile</span><span>5 Launch</span>
         </div>
       </div>
 
@@ -146,11 +179,20 @@ function buildPanelHTML(): string {
           </div>
         </section>
 
-        <!-- Skill Packs -->
+        <!-- Skills -->
         <section class="settings-section" id="section-skills">
-          <h3>Skill Packs</h3>
-          <p class="section-note">Bundled skills are available now. Optional packs document what JARVIS can activate or download for a task-specific agent workflow.</p>
-          <div class="skill-grid" id="skill-grid"></div>
+          <h3>Skills <span class="skills-count" id="skills-count"></span></h3>
+          <p class="section-note">Enable the capabilities JARVIS should be ready to use. Active skills are loaded into context so he performs the task well. Some skills can run and produce a file.</p>
+          <input type="search" id="skills-search" class="skills-search" placeholder="Search 100 skills — invoice, email, hiring..." />
+          <div class="skills-chips" id="skills-chips"></div>
+          <div class="skills-list" id="skills-list"></div>
+        </section>
+
+        <!-- Connected Tools (MCP) -->
+        <section class="settings-section" id="section-mcp">
+          <h3>Connected Tools <span class="skills-count" id="mcp-count"></span></h3>
+          <p class="section-note">Connect external tools over MCP so JARVIS can reach your email, docs, CRM, and database. Add the matching API key in Settings where a tool needs auth.</p>
+          <div class="mcp-list" id="mcp-list"></div>
         </section>
 
         <!-- Connection Status -->
@@ -274,17 +316,130 @@ function renderProviders(providers: ApiProvider[]) {
     .join("");
 }
 
-function renderSkills(skills: SkillPack[]) {
-  const grid = document.getElementById("skill-grid");
-  if (!grid) return;
-  grid.innerHTML = skills.map((skill) => `
-    <div class="skill-card ${skill.bundled ? "bundled" : "optional"}">
-      <span>${escapeHtml(skill.category)}</span>
-      <strong>${escapeHtml(skill.name)}</strong>
-      <p>${escapeHtml(skill.description)}</p>
-      ${skill.install_hint ? `<small>${escapeHtml(skill.install_hint)}</small>` : ""}
-    </div>
-  `).join("");
+// --- Skills browser --------------------------------------------------------
+
+let allSkills: Skill[] = [];
+let skillCategories: SkillCategory[] = [];
+let activeCategory = "All";
+let skillSearchTerm = "";
+
+async function loadSkills() {
+  try {
+    const data = await apiGet<{ skills: Skill[]; categories: SkillCategory[]; counts: { total: number; enabled: number } }>("/api/skills");
+    allSkills = data.skills || [];
+    skillCategories = data.categories || [];
+    const countEl = document.getElementById("skills-count");
+    if (countEl) countEl.textContent = `${data.counts.enabled}/${data.counts.total} active`;
+    renderChips();
+    renderSkillsList();
+  } catch (e) {
+    console.error("[settings] failed to load skills:", e);
+  }
+}
+
+function renderChips() {
+  const chips = document.getElementById("skills-chips");
+  if (!chips) return;
+  const cats = ["All", ...skillCategories.map((c) => c.category)];
+  chips.innerHTML = cats
+    .map((c) => {
+      const meta = skillCategories.find((x) => x.category === c);
+      const count = c === "All" ? "" : ` <em>${meta?.enabled ?? 0}/${meta?.total ?? 0}</em>`;
+      return `<button class="skill-chip ${c === activeCategory ? "active" : ""}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}${count}</button>`;
+    })
+    .join("");
+}
+
+function renderSkillsList() {
+  const list = document.getElementById("skills-list");
+  if (!list) return;
+  const term = skillSearchTerm.toLowerCase();
+  const filtered = allSkills.filter((s) => {
+    const matchesCat = activeCategory === "All" || s.category === activeCategory;
+    const matchesTerm =
+      !term ||
+      `${s.name} ${s.description} ${s.instructions} ${s.category}`.toLowerCase().includes(term);
+    return matchesCat && matchesTerm;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<p class="section-note">No skills match "${escapeHtml(skillSearchTerm)}".</p>`;
+    return;
+  }
+
+  list.innerHTML = filtered
+    .map(
+      (s) => `
+    <div class="skill-row ${s.enabled ? "enabled" : ""}">
+      <div class="skill-row-main">
+        <strong>${escapeHtml(s.name)}${s.executable ? ' <span class="skill-exec">runs</span>' : ""}</strong>
+        <small>${escapeHtml(s.category)}</small>
+        <p>${escapeHtml(s.description)}</p>
+      </div>
+      <button class="skill-toggle ${s.enabled ? "on" : ""}" data-slug="${escapeHtml(s.slug)}" role="switch" aria-checked="${s.enabled}" aria-label="Toggle ${escapeHtml(s.name)}"><span></span></button>
+    </div>`
+    )
+    .join("");
+}
+
+async function toggleSkill(slug: string) {
+  const skill = allSkills.find((s) => s.slug === slug);
+  if (!skill) return;
+  const next = !skill.enabled;
+  skill.enabled = next; // optimistic
+  renderSkillsList();
+  try {
+    await apiPost(`/api/skills/${slug}/toggle`, { enabled: next });
+    await loadSkills();
+  } catch {
+    skill.enabled = !next;
+    renderSkillsList();
+  }
+}
+
+// --- MCP tools -------------------------------------------------------------
+
+async function loadMcp() {
+  try {
+    const data = await apiGet<{ servers: McpServer[] }>("/api/mcp");
+    const servers = data.servers || [];
+    const countEl = document.getElementById("mcp-count");
+    if (countEl) countEl.textContent = `${servers.filter((s) => s.connected).length} connected`;
+    renderMcp(servers);
+  } catch (e) {
+    console.error("[settings] failed to load MCP servers:", e);
+  }
+}
+
+function renderMcp(servers: McpServer[]) {
+  const list = document.getElementById("mcp-list");
+  if (!list) return;
+  list.innerHTML = servers
+    .map(
+      (s) => `
+    <div class="mcp-card ${s.connected ? "connected" : ""}">
+      <div class="mcp-card-head">
+        <span class="status-dot ${s.connected ? "status-green" : ""}"></span>
+        <div>
+          <strong>${escapeHtml(s.name)}</strong>
+          <small>${escapeHtml(s.category)}${s.capabilities.length ? " · " + escapeHtml(s.capabilities.join(", ")) : ""}</small>
+        </div>
+        <button class="settings-btn mcp-btn" data-mcp="${escapeHtml(s.id)}" data-connected="${s.connected}">${s.connected ? "Disconnect" : "Connect"}</button>
+      </div>
+      <p>${escapeHtml(s.description)}</p>
+      ${s.connected && s.auth_required && !s.auth_present ? `<small class="mcp-warn">Needs an API key — add it in the Keys section.</small>` : ""}
+    </div>`
+    )
+    .join("");
+}
+
+async function toggleMcp(id: string, connected: boolean) {
+  try {
+    await apiPost(`/api/mcp/${id}/${connected ? "disconnect" : "connect"}`, { config: {} });
+    await loadMcp();
+  } catch (e) {
+    console.error("[settings] MCP toggle failed:", e);
+  }
 }
 
 async function loadStatus() {
@@ -305,7 +460,8 @@ async function loadStatus() {
     setDotStatus("status-fish", status.env_keys_set.fish_audio ? "green" : "red");
 
     renderProviders(status.providers || []);
-    renderSkills(status.skills || []);
+    loadSkills();
+    loadMcp();
 
     // System info
     const memEl = document.getElementById("sysinfo-memory");
@@ -411,6 +567,35 @@ function wireEvents() {
 
   // Setup next button
   document.getElementById("btn-setup-next")?.addEventListener("click", advanceSetup);
+
+  // Skills search
+  document.getElementById("skills-search")?.addEventListener("input", (e) => {
+    skillSearchTerm = (e.target as HTMLInputElement).value;
+    renderSkillsList();
+  });
+
+  // Category chips (delegated)
+  document.getElementById("skills-chips")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-cat]");
+    if (!btn) return;
+    activeCategory = btn.dataset.cat || "All";
+    renderChips();
+    renderSkillsList();
+  });
+
+  // Skill toggles (delegated)
+  document.getElementById("skills-list")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-slug]");
+    if (!btn) return;
+    toggleSkill(btn.dataset.slug || "");
+  });
+
+  // MCP connect/disconnect (delegated)
+  document.getElementById("mcp-list")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-mcp]");
+    if (!btn) return;
+    toggleMcp(btn.dataset.mcp || "", btn.dataset.connected === "true");
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -431,42 +616,49 @@ function enterSetupMode() {
   showSetupStep(0);
 }
 
+const ALL_SECTIONS = ["section-api-keys", "section-skills", "section-mcp", "section-status", "section-preferences", "section-sysinfo"];
+// Which section each setup step reveals (0=keys, 1=skills, 2=tools, 3=profile).
+const SETUP_STEP_SECTION: Record<number, string> = {
+  0: "section-api-keys",
+  1: "section-skills",
+  2: "section-mcp",
+  3: "section-preferences",
+};
+
 function showSetupStep(step: number) {
-  const sections = ["section-api-keys", "section-skills", "section-status", "section-preferences", "section-sysinfo"];
   document.querySelectorAll("#onboarding-steps span").forEach((item, index) => {
-    item.classList.toggle("active", index === Math.min(step, 3));
+    item.classList.toggle("active", index === Math.min(step, 4));
   });
-  sections.forEach((id, i) => {
+  const visible = SETUP_STEP_SECTION[step];
+  ALL_SECTIONS.forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (step === 0 && id === "section-api-keys") el.style.display = "";
-    else if (step === 1 && id === "section-skills") el.style.display = "";
-    else if (step === 2 && id === "section-preferences") el.style.display = "";
-    else if (step === 3) el.style.display = "";
-    else el.style.display = "none";
+    el.style.display = id === visible ? "" : "none";
   });
 
   const nextBtn = document.getElementById("btn-setup-next");
   if (nextBtn) {
-    if (step === 0) nextBtn.textContent = "Next: Skills";
-    else if (step === 1) nextBtn.textContent = "Next: Profile";
-    else if (step === 2) nextBtn.textContent = "Finish Setup";
-    else nextBtn.style.display = "none";
+    const labels: Record<number, string> = {
+      0: "Next: Skills",
+      1: "Next: Tools",
+      2: "Next: Profile",
+      3: "Finish Setup",
+    };
+    nextBtn.textContent = labels[step] || "Finish Setup";
   }
 }
 
 async function advanceSetup() {
   setupStep++;
-  if (setupStep >= 3) {
-    // Done — save everything and close
+  if (setupStep >= 4) {
+    // Done — reveal everything and close
     isFirstTimeSetup = false;
     const welcome = document.getElementById("settings-welcome");
     if (welcome) welcome.style.display = "none";
     const nav = document.getElementById("setup-nav");
     if (nav) nav.style.display = "none";
 
-    // Show all sections
-    ["section-api-keys", "section-skills", "section-status", "section-preferences", "section-sysinfo"].forEach((id) => {
+    ALL_SECTIONS.forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.style.display = "";
     });

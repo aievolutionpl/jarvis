@@ -29,7 +29,10 @@ When a user clones this repo and starts Claude Code, help them:
 - `frontend/src/orb.ts` — Three.js particle orb visualization
 - `frontend/src/voice.ts` — Web Speech API + audio playback
 - `frontend/src/main.ts` — Frontend state machine
-- `memory.py` — SQLite memory system with FTS5 search
+- `memory.py` — SQLite memory system with FTS5 search, relevance ranking, and dedup
+- `skills.py` — Installable skill catalog (~100 small-business skills) + executable handlers
+- `onboarding.py` — First-run discovery flow and persistent user profile
+- `mcp_registry.py` — Connectable external tool servers via MCP
 - `calendar_access.py` — Apple Calendar integration via AppleScript
 - `mail_access.py` — Apple Mail integration (READ-ONLY)
 - `notes_access.py` — Apple Notes integration
