@@ -300,8 +300,10 @@ html, body {
   min-height: 44px;
 }
 
-.settings-input-row input {
+.settings-input-row input,
+.settings-input-row select {
   flex: 1;
+  width: auto;
 }
 
 .settings-btn {

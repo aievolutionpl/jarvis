@@ -164,8 +164,9 @@ export function createAudioPlayer(): AudioPlayer {
         if (!isPlaying) playNext();
       } catch (err) {
         console.error("[audio] decode error:", err);
-        // Skip bad audio, continue
-        if (!isPlaying && queue.length > 0) playNext();
+        // Skip bad audio. Always advance — playNext() fires the finished callback
+        // when the queue is empty, so a failed last buffer can't wedge the orb.
+        if (!isPlaying) playNext();
       }
     },
 

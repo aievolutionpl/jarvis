@@ -54,7 +54,8 @@ from memory import (
 from notes_access import get_recent_notes, read_note, search_notes_apple, create_apple_note
 from dispatch_registry import DispatchRegistry
 from planner import TaskPlanner, detect_planning_mode, BYPASS_PHRASES
-from integrations import provider_env_keys, providers_for_status, skills_for_status
+from integrations import provider_env_keys, providers_for_status, skills_for_status, is_configured
+from providers import config as provider_config, llm as provider_llm, tts as provider_tts
 import skills as skills_system
 import onboarding as onboarding_system
 import mcp_registry
@@ -842,14 +843,16 @@ def extract_action(response: str) -> tuple[str, dict | None]:
 
     Returns (clean_text_for_tts, action_dict_or_none).
     """
+    # Match the tag and its target up to the end of that line only, so any spoken
+    # text the model places AFTER the tag (a common ordering) is preserved.
     match = _action_re.search(
-        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL)\]\s*(.*?)$',
-        response, _action_re.DOTALL,
+        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL)\]\s*([^\n]*)',
+        response,
     )
     if match:
         action_type = match.group(1).lower()
         action_target = match.group(2).strip()
-        clean_text = response[:match.start()].strip()
+        clean_text = (response[:match.start()] + response[match.end():]).strip()
         return clean_text, {"action": action_type, "target": action_target}
     return response, None
 
@@ -1155,35 +1158,16 @@ _last_greeting_time: float = 0
 # ---------------------------------------------------------------------------
 
 async def synthesize_speech(text: str) -> Optional[bytes]:
-    """Generate speech audio from text using Fish Audio TTS."""
-    if not FISH_API_KEY:
-        log.warning("FISH_API_KEY not set, skipping TTS")
-        return None
+    """Generate speech audio via the active TTS provider (Fish Audio / ElevenLabs).
 
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as http:
-            response = await http.post(
-                FISH_API_URL,
-                headers={
-                    "Authorization": f"Bearer {FISH_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "text": text,
-                    "reference_id": FISH_VOICE_ID,
-                    "format": "mp3",
-                },
-            )
-            if response.status_code == 200:
-                _session_tokens["tts_calls"] += 1
-                _append_usage_entry(0, 0, "tts")
-                return response.content
-            else:
-                log.error(f"TTS error: {response.status_code}")
-                return None
-    except Exception as e:
-        log.error(f"TTS error: {e}")
-        return None
+    Provider selection and keys are read live from the environment, so changes
+    saved at runtime take effect without a restart. Usage accounting stays here.
+    """
+    audio = await provider_tts.synthesize(text)
+    if audio is not None:
+        _session_tokens["tts_calls"] += 1
+        _append_usage_entry(0, 0, "tts")
+    return audio
 
 
 # ---------------------------------------------------------------------------
@@ -1274,18 +1258,22 @@ async def generate_response(
     if not messages or messages[-1].get("content") != text:
         messages = messages + [{"role": "user", "content": text}]
 
-    try:
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=250,  # Extra room for [ACTION:X] tags
-            system=system,
-            messages=messages,
-        )
-        track_usage(response)
-        return response.content[0].text
-    except Exception as e:
-        log.error(f"LLM error: {e}")
-        return "Apologies, sir. I'm having trouble connecting to my language systems."
+    # Route the conversational brain through the active provider. Claude remains
+    # the default and still drives actions/classification elsewhere; other brains
+    # may be weaker at the [ACTION:X] protocol (surfaced as a note in the UI).
+    provider = provider_config.active_llm_provider()
+    model = provider_config.active_llm_model(provider)
+    if provider == "anthropic":
+        model = "claude-haiku-4-5-20251001"  # fixed low-latency model for the voice loop
+    return await provider_llm.complete(
+        provider=provider,
+        model=model,
+        system=system,
+        messages=messages,
+        max_tokens=250,  # Extra room for [ACTION:X] tags
+        anthropic_client=client,
+        on_usage=_record_llm_usage,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1354,10 +1342,38 @@ def track_usage(response):
     """Track token usage from an Anthropic API response."""
     inp = getattr(response.usage, "input_tokens", 0) if hasattr(response, "usage") else 0
     out = getattr(response.usage, "output_tokens", 0) if hasattr(response, "usage") else 0
-    _session_tokens["input"] += inp
-    _session_tokens["output"] += out
+    _record_llm_usage(inp, out)
+
+
+def _record_llm_usage(input_tokens: int, output_tokens: int):
+    """Usage callback shared by all LLM providers (Anthropic + httpx-based)."""
+    _session_tokens["input"] += input_tokens or 0
+    _session_tokens["output"] += output_tokens or 0
     _session_tokens["api_calls"] += 1
-    _append_usage_entry(inp, out, "api")
+    _append_usage_entry(input_tokens or 0, output_tokens or 0, "api")
+
+
+async def summarize(prompt: str, system: str = "", max_tokens: int = 150) -> str:
+    """Summarize/condense text, preferring Claude but falling back to the active
+    provider when no Anthropic key is configured. Returns "" on failure so callers
+    can skip gracefully. Keeps background work (session summary, memory extraction,
+    dispatch summaries) alive even when a non-Claude brain is in use.
+    """
+    messages = [{"role": "user", "content": prompt}]
+    if anthropic_client is not None:
+        return await provider_llm.complete(
+            provider="anthropic", model="claude-haiku-4-5-20251001",
+            system=system, messages=messages, max_tokens=max_tokens,
+            anthropic_client=anthropic_client, on_usage=_record_llm_usage,
+        )
+    provider = provider_config.active_llm_provider()
+    if provider == "anthropic":
+        return ""  # no Claude key and no alternate brain selected
+    text = await provider_llm.complete(
+        provider=provider, model=provider_config.active_llm_model(provider),
+        system=system, messages=messages, max_tokens=max_tokens, on_usage=_record_llm_usage,
+    )
+    return "" if text == provider_llm.FALLBACK else text
 
 
 def get_usage_summary() -> str:
@@ -2035,16 +2051,10 @@ New messages to incorporate:
 
 Write an updated summary in 2-4 sentences capturing the key topics, decisions, and context. Be concise."""
 
-    try:
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=200,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.content[0].text.strip()
-    except Exception as e:
-        log.warning(f"Summary update failed: {e}")
-        return old_summary  # Keep old summary on failure
+    # Prefer Claude but fall back to the active provider when no Anthropic key is
+    # configured, so the rolling summary keeps working under a non-Claude brain.
+    result = await summarize(prompt, max_tokens=200)
+    return result.strip() if result else old_summary
 
 
 # -- WebSocket Voice Handler -----------------------------------------------
@@ -2069,9 +2079,8 @@ async def voice_handler(ws: WebSocket):
     work_session = WorkSession()
     planner = TaskPlanner()
 
-    # Response cancellation — when new input arrives, cancel current response
+    # Request sequencing — lets the client discard a stale reply after barge-in
     _current_response_id = 0
-    _cancel_response = False
 
     # Audio collision prevention — track when user last spoke
     voice_state = {"last_user_time": 0.0}
@@ -2140,9 +2149,10 @@ async def voice_handler(ws: WebSocket):
                 await ws.send_json({"type": "status", "state": "speaking"})
                 audio = await synthesize_speech(tts)
                 if audio:
-                    await ws.send_json({"type": "audio", "data": audio, "text": response_text})
+                    await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": response_text})
                 else:
                     await ws.send_json({"type": "text", "text": response_text})
+                    await ws.send_json({"type": "status", "state": "idle"})
                 continue
 
             if msg.get("type") != "transcript" or not msg.get("isFinal"):
@@ -2152,12 +2162,10 @@ async def voice_handler(ws: WebSocket):
             if not user_text:
                 continue
 
-            # Cancel any in-flight response
+            # Track this request so the client can discard a stale reply if the
+            # user barges in with a newer utterance before this one finishes.
             _current_response_id += 1
-            my_response_id = _current_response_id
-            _cancel_response = True
-            await asyncio.sleep(0.05)  # Let any pending sends notice the cancellation
-            _cancel_response = False
+            req_id = msg.get("id", _current_response_id)
 
             voice_state["last_user_time"] = time.time()
             log.info(f"User: {user_text}")
@@ -2599,9 +2607,9 @@ async def voice_handler(ws: WebSocket):
                 await ws.send_json({"type": "status", "state": "speaking"})
                 audio = await synthesize_speech(tts)
                 if audio:
-                    await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": response_text})
+                    await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": response_text, "reqId": req_id})
                 else:
-                    await ws.send_json({"type": "text", "text": response_text})
+                    await ws.send_json({"type": "text", "text": response_text, "reqId": req_id})
                     await ws.send_json({"type": "status", "state": "idle"})
                 log.info(f"JARVIS: {response_text}")
                 last_jarvis_response = response_text
@@ -2682,18 +2690,73 @@ class KeyUpdate(BaseModel):
 class KeyTest(BaseModel):
     key_value: str | None = None
 
+class ProviderTest(BaseModel):
+    provider: str
+    key_value: str | None = None
+
+class ActiveUpdate(BaseModel):
+    llm_provider: str | None = None
+    llm_model: str | None = None
+    tts_provider: str | None = None
+
 class PreferencesUpdate(BaseModel):
     user_name: str = ""
     honorific: str = "sir"
     calendar_accounts: str = "auto"
 
+def _rebuild_anthropic_client():
+    """Recreate the Anthropic client from the current env so a freshly-saved key
+    takes effect without a server restart."""
+    global anthropic_client
+    key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    anthropic_client = anthropic.AsyncAnthropic(api_key=key) if key else None
+
+
 @app.post("/api/settings/keys")
 async def api_settings_keys(body: KeyUpdate):
-    allowed = provider_env_keys() | {"FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
+    allowed = (
+        provider_env_keys()
+        | {"FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
+        | provider_config.extra_env_keys()
+    )
     if body.key_name not in allowed:
         return JSONResponse({"success": False, "error": "Invalid key name"}, status_code=400)
     _write_env_key(body.key_name, body.key_value)
+    if body.key_name == "ANTHROPIC_API_KEY":
+        _rebuild_anthropic_client()
     return {"success": True}
+
+
+@app.post("/api/settings/active")
+async def api_settings_active(body: ActiveUpdate):
+    """Persist the active LLM brain / model / voice provider."""
+    if body.llm_provider is not None:
+        if body.llm_provider not in provider_config.LLM_PROVIDERS:
+            return JSONResponse({"success": False, "error": "Unknown LLM provider"}, status_code=400)
+        _write_env_key("JARVIS_LLM_PROVIDER", body.llm_provider)
+    if body.llm_model is not None and body.llm_provider:
+        _write_env_key(provider_config.model_env_key(body.llm_provider), body.llm_model)
+    if body.tts_provider is not None:
+        if body.tts_provider not in provider_config.TTS_PROVIDERS:
+            return JSONResponse({"success": False, "error": "Unknown TTS provider"}, status_code=400)
+        _write_env_key("JARVIS_TTS_PROVIDER", body.tts_provider)
+    return {"success": True, "llm": provider_config.llm_status(), "tts": provider_config.tts_status()}
+
+
+@app.post("/api/settings/test-provider")
+async def api_test_provider(body: ProviderTest):
+    """Connectivity check for any LLM or TTS provider."""
+    if body.provider in provider_config.TTS_PROVIDERS:
+        return await provider_tts.test_provider(body.provider, body.key_value or None)
+    if body.provider in provider_config.LLM_PROVIDERS:
+        return await provider_llm.test_provider(body.provider, body.key_value or None)
+    return {"valid": False, "error": "Unknown provider"}
+
+
+@app.get("/api/settings/ollama-models")
+async def api_ollama_models():
+    models, error = await provider_llm.list_ollama_models()
+    return {"models": models, "error": error}
 
 @app.post("/api/settings/test-anthropic")
 async def api_test_anthropic(body: KeyTest):
@@ -2755,12 +2818,14 @@ async def api_settings_status():
         "server_port": 8340,
         "uptime_seconds": int(time.time() - _session_start),
         "env_keys_set": {
-            "anthropic": bool(env_dict.get("ANTHROPIC_API_KEY", "").strip() and env_dict.get("ANTHROPIC_API_KEY", "") != "your-anthropic-api-key-here"),
-            "fish_audio": bool(env_dict.get("FISH_API_KEY", "").strip() and env_dict.get("FISH_API_KEY", "") != "your-fish-audio-api-key-here"),
+            "anthropic": is_configured(env_dict.get("ANTHROPIC_API_KEY", "")),
+            "fish_audio": is_configured(env_dict.get("FISH_API_KEY", "")),
             "fish_voice_id": bool(env_dict.get("FISH_VOICE_ID", "").strip()),
             "user_name": env_dict.get("USER_NAME", ""),
         },
         "providers": providers_for_status(env_dict),
+        "llm": provider_config.llm_status(),
+        "tts": provider_config.tts_status(),
         "skills": skills_for_status(),
         "skill_counts": skills_system.counts(),
         "mcp_connected": len(mcp_registry.connected_servers()),

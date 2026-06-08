@@ -58,8 +58,25 @@ The skill catalog is exposed through `/api/skills` and rendered in the onboardin
 | Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider | No |
 | Groq | `GROQ_API_KEY` | Optional ultra-fast inference | No |
 | Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend | No |
+| Ollama | _none_ (`OLLAMA_BASE_URL`) | Local models (Llama, Gemma 3, Qwen…) — fully offline, no key | No |
 
 > Keys are stored locally in `.env`. Do not commit your real `.env` file.
+
+### Switching the brain and the voice
+
+JARVIS now ships a runtime **provider router**. Open **Settings → Engine** to pick:
+
+- **Active Brain** — the conversational model. `anthropic` (default) plus `openai`,
+  `google` (Gemini), `deepseek`, `groq`, and `ollama` for local models. Selections
+  persist to `.env` (`JARVIS_LLM_PROVIDER`, `JARVIS_LLM_MODEL_*`) and take effect
+  without a restart. Claude still drives tool/action calls and intent classification,
+  so other brains chat well but may be weaker at running tools.
+- **Active Voice** — `fish_audio` (default) or `elevenlabs` (`JARVIS_TTS_PROVIDER`).
+
+For local models, run `ollama serve`, pull a model (`ollama pull llama3.2` or
+`ollama pull gemma3`), and select **Ollama (local)** — the model list is fetched
+live from your Ollama server. (Note: Google's open model line is **Gemma 3**; the
+hosted **Gemini** API is available via the Google AI connector.)
 
 ---
 
@@ -196,15 +213,16 @@ cd frontend && npm run build
 - Keep real secrets in `.env` only.
 - The settings API accepts only known environment keys from the provider catalog and personalization fields.
 - Mail integration is read-only by design.
-- Optional providers are configuration-ready; execution routing should be implemented per provider before enabling autonomous use.
+- The conversational brain is routed live to the selected provider; Claude remains the orchestrator for tool/action calls when configured.
 
 ---
 
 ## Roadmap
 
-- Provider execution router for DeepSeek, OpenAI, Google, Groq, Perplexity, and Hermes.
+- ~~Provider execution router for DeepSeek, OpenAI, Google, Groq, and Ollama.~~ ✅ Shipped (Perplexity/Hermes still config-only).
+- ~~ElevenLabs runtime TTS selection in addition to saved configuration.~~ ✅ Shipped.
+- Cross-provider tool-use parity so non-Claude brains can drive `[ACTION:X]` reliably.
 - Downloadable skill marketplace with task-triggered installation.
-- ElevenLabs runtime TTS selection in addition to saved configuration.
 - Windows-native desktop integrations to complement the macOS AppleScript bridge.
 - Screenshot/demo media for the GitHub README.
 

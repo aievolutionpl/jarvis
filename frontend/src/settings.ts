@@ -60,6 +60,36 @@ interface McpServer {
   docs_url: string;
 }
 
+interface LlmProviderStatus {
+  id: string;
+  label: string;
+  configured: boolean;
+  needs_key: boolean;
+  models: string[];
+  default_model: string;
+  active_model: string;
+  is_ollama: boolean;
+}
+
+interface LlmStatus {
+  providers: LlmProviderStatus[];
+  active: string;
+  active_model: string;
+  ollama_base_url: string;
+}
+
+interface TtsProviderStatus {
+  id: string;
+  label: string;
+  configured: boolean;
+  voice_id: string;
+}
+
+interface TtsStatus {
+  providers: TtsProviderStatus[];
+  active: string;
+}
+
 interface StatusResponse {
   claude_code_installed: boolean;
   calendar_accessible: boolean;
@@ -77,6 +107,8 @@ interface StatusResponse {
     user_name: string;
   };
   providers: ApiProvider[];
+  llm?: LlmStatus;
+  tts?: TtsStatus;
   skills: SkillPack[];
   skill_counts?: { total: number; enabled: number };
   mcp_connected?: number;
@@ -176,6 +208,53 @@ function buildPanelHTML(): string {
 
           <div class="settings-actions">
             <button class="settings-btn primary" id="btn-save-keys">Save Keys</button>
+          </div>
+        </section>
+
+        <!-- Engine: active brain + voice -->
+        <section class="settings-section" id="section-engine">
+          <h3>Engine</h3>
+          <p class="section-note">Choose which model thinks and which voice speaks. Claude is recommended for tool actions; other brains chat well but may be weaker at running tools.</p>
+
+          <div class="settings-field">
+            <label>Active Brain</label>
+            <div class="settings-input-row">
+              <select id="select-llm-provider"></select>
+              <span class="status-dot" id="status-llm"></span>
+            </div>
+          </div>
+
+          <div class="settings-field">
+            <label>Model</label>
+            <div class="settings-input-row">
+              <select id="select-llm-model"></select>
+              <button class="settings-btn" id="btn-test-llm">Test</button>
+            </div>
+          </div>
+
+          <div class="settings-field" id="field-ollama-url" style="display:none">
+            <label>Ollama Base URL</label>
+            <div class="settings-input-row">
+              <input type="text" id="input-ollama-url" placeholder="http://localhost:11434" />
+              <button class="settings-btn" id="btn-save-ollama-url">Save</button>
+            </div>
+          </div>
+
+          <div class="settings-field">
+            <label>Active Voice</label>
+            <div class="settings-input-row">
+              <select id="select-tts-provider"></select>
+              <button class="settings-btn" id="btn-test-tts">Test</button>
+              <span class="status-dot" id="status-tts"></span>
+            </div>
+          </div>
+
+          <div class="settings-field" id="field-eleven-voice" style="display:none">
+            <label>ElevenLabs Voice ID</label>
+            <div class="settings-input-row">
+              <input type="text" id="input-eleven-voice" placeholder="JBFqnCBsd6RMkjVDRZzb" />
+              <button class="settings-btn" id="btn-save-eleven-voice">Save</button>
+            </div>
           </div>
         </section>
 
@@ -314,6 +393,78 @@ function renderProviders(providers: ApiProvider[]) {
       </div>
     `)
     .join("");
+}
+
+// --- Engine (active brain + voice) -----------------------------------------
+
+let llmStatusCache: LlmStatus | null = null;
+
+function populateModelSelect(providerId: string, selected?: string) {
+  const sel = document.getElementById("select-llm-model") as HTMLSelectElement | null;
+  if (!sel || !llmStatusCache) return;
+  const provider = llmStatusCache.providers.find((p) => p.id === providerId);
+  const models = provider?.models?.length ? provider.models : (provider ? [provider.active_model] : []);
+  const want = selected || provider?.active_model || provider?.default_model || "";
+  sel.innerHTML = models
+    .map((m) => `<option value="${escapeHtml(m)}" ${m === want ? "selected" : ""}>${escapeHtml(m)}</option>`)
+    .join("");
+}
+
+async function refreshOllamaModels(selected?: string) {
+  const sel = document.getElementById("select-llm-model") as HTMLSelectElement | null;
+  if (!sel) return;
+  sel.innerHTML = `<option>loading…</option>`;
+  try {
+    const data = await apiGet<{ models: string[]; error?: string }>("/api/settings/ollama-models");
+    const models = data.models?.length ? data.models : ["llama3.2"];
+    sel.innerHTML = models
+      .map((m) => `<option value="${escapeHtml(m)}" ${m === selected ? "selected" : ""}>${escapeHtml(m)}</option>`)
+      .join("");
+    if (data.error) console.warn("[engine] ollama:", data.error);
+  } catch (e) {
+    sel.innerHTML = `<option value="llama3.2">llama3.2</option>`;
+    console.warn("[engine] ollama models failed:", e);
+  }
+}
+
+function renderEngine(status: StatusResponse) {
+  const llm = status.llm;
+  const tts = status.tts;
+  if (llm) {
+    llmStatusCache = llm;
+    const sel = document.getElementById("select-llm-provider") as HTMLSelectElement | null;
+    if (sel) {
+      sel.innerHTML = llm.providers
+        .map((p) => {
+          const tag = p.is_ollama ? " (local)" : p.configured ? "" : " — no key";
+          return `<option value="${escapeHtml(p.id)}" ${p.id === llm.active ? "selected" : ""} ${!p.configured && !p.is_ollama ? "disabled" : ""}>${escapeHtml(p.label)}${tag}</option>`;
+        })
+        .join("");
+    }
+    const active = llm.providers.find((p) => p.id === llm.active);
+    setDotStatus("status-llm", active && active.configured ? "green" : "red");
+    const urlField = document.getElementById("field-ollama-url");
+    if (urlField) urlField.style.display = llm.active === "ollama" ? "" : "none";
+    const urlInput = document.getElementById("input-ollama-url") as HTMLInputElement | null;
+    if (urlInput && !urlInput.value) urlInput.value = llm.ollama_base_url || "";
+    if (llm.active === "ollama") refreshOllamaModels(llm.active_model);
+    else populateModelSelect(llm.active, llm.active_model);
+  }
+  if (tts) {
+    const sel = document.getElementById("select-tts-provider") as HTMLSelectElement | null;
+    if (sel) {
+      sel.innerHTML = tts.providers
+        .map((p) => `<option value="${escapeHtml(p.id)}" ${p.id === tts.active ? "selected" : ""}>${escapeHtml(p.label)}${p.configured ? "" : " — no key"}</option>`)
+        .join("");
+    }
+    const active = tts.providers.find((p) => p.id === tts.active);
+    setDotStatus("status-tts", active && active.configured ? "green" : "red");
+    const voiceField = document.getElementById("field-eleven-voice");
+    if (voiceField) voiceField.style.display = tts.active === "elevenlabs" ? "" : "none";
+    const voiceInput = document.getElementById("input-eleven-voice") as HTMLInputElement | null;
+    const eleven = tts.providers.find((p) => p.id === "elevenlabs");
+    if (voiceInput && !voiceInput.value && eleven) voiceInput.value = eleven.voice_id || "";
+  }
 }
 
 // --- Skills browser --------------------------------------------------------
@@ -460,6 +611,7 @@ async function loadStatus() {
     setDotStatus("status-fish", status.env_keys_set.fish_audio ? "green" : "red");
 
     renderProviders(status.providers || []);
+    renderEngine(status);
     loadSkills();
     loadMcp();
 
@@ -554,6 +706,70 @@ function wireEvents() {
     } catch {
       setDotStatus("status-fish", "red");
     }
+  });
+
+  // --- Engine: active brain ---
+  document.getElementById("select-llm-provider")?.addEventListener("change", async (e) => {
+    const provider = (e.target as HTMLSelectElement).value;
+    const urlField = document.getElementById("field-ollama-url");
+    if (urlField) urlField.style.display = provider === "ollama" ? "" : "none";
+    if (provider === "ollama") await refreshOllamaModels();
+    else populateModelSelect(provider);
+    const model = (document.getElementById("select-llm-model") as HTMLSelectElement)?.value;
+    await apiPost("/api/settings/active", { llm_provider: provider, llm_model: model });
+    await loadStatus();
+  });
+
+  document.getElementById("select-llm-model")?.addEventListener("change", async (e) => {
+    const provider = (document.getElementById("select-llm-provider") as HTMLSelectElement)?.value;
+    const model = (e.target as HTMLSelectElement).value;
+    if (provider) await apiPost("/api/settings/active", { llm_provider: provider, llm_model: model });
+  });
+
+  document.getElementById("btn-test-llm")?.addEventListener("click", async () => {
+    const provider = (document.getElementById("select-llm-provider") as HTMLSelectElement)?.value;
+    if (!provider) return;
+    setDotStatus("status-llm", "yellow");
+    try {
+      const result = await apiPost<{ valid: boolean; error?: string }>("/api/settings/test-provider", { provider });
+      setDotStatus("status-llm", result.valid ? "green" : "red");
+    } catch {
+      setDotStatus("status-llm", "red");
+    }
+  });
+
+  document.getElementById("btn-save-ollama-url")?.addEventListener("click", async () => {
+    const url = (document.getElementById("input-ollama-url") as HTMLInputElement).value.trim();
+    if (url) {
+      await apiPost("/api/settings/keys", { key_name: "OLLAMA_BASE_URL", key_value: url });
+      await refreshOllamaModels();
+    }
+  });
+
+  // --- Engine: active voice ---
+  document.getElementById("select-tts-provider")?.addEventListener("change", async (e) => {
+    const provider = (e.target as HTMLSelectElement).value;
+    const voiceField = document.getElementById("field-eleven-voice");
+    if (voiceField) voiceField.style.display = provider === "elevenlabs" ? "" : "none";
+    await apiPost("/api/settings/active", { tts_provider: provider });
+    await loadStatus();
+  });
+
+  document.getElementById("btn-test-tts")?.addEventListener("click", async () => {
+    const provider = (document.getElementById("select-tts-provider") as HTMLSelectElement)?.value;
+    if (!provider) return;
+    setDotStatus("status-tts", "yellow");
+    try {
+      const result = await apiPost<{ valid: boolean; error?: string }>("/api/settings/test-provider", { provider });
+      setDotStatus("status-tts", result.valid ? "green" : "red");
+    } catch {
+      setDotStatus("status-tts", "red");
+    }
+  });
+
+  document.getElementById("btn-save-eleven-voice")?.addEventListener("click", async () => {
+    const voice = (document.getElementById("input-eleven-voice") as HTMLInputElement).value.trim();
+    if (voice) await apiPost("/api/settings/keys", { key_name: "ELEVENLABS_VOICE_ID", key_value: voice });
   });
 
   // Save preferences
