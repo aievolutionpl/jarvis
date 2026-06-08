@@ -38,7 +38,7 @@ import anthropic
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from actions import execute_action, monitor_build, open_terminal, open_browser, open_claude_in_project, _generate_project_name, prompt_existing_terminal, applescript_escape
@@ -58,6 +58,8 @@ from integrations import provider_env_keys, providers_for_status, skills_for_sta
 import skills as skills_system
 import onboarding as onboarding_system
 import mcp_registry
+import mcp_client
+import action_log
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("jarvis")
@@ -218,6 +220,7 @@ CRITICAL: When the user asks about their SCREEN, what's RUNNING, or what they're
 - [ACTION:CREATE_NOTE] title ||| body — create a new Apple Note. For saving plans, ideas, lists.
   "save that as a note" → [ACTION:CREATE_NOTE] Day Plan March 19 ||| Morning: client calls. Afternoon: TikTok dashboard. Evening: JARVIS improvements.
 - [ACTION:READ_NOTE] title search — read an existing Apple Note by title keyword.
+- [ACTION:MCP_CALL] server_id ||| tool_name ||| {json args} — call a connected MCP tool. Read-only calls execute immediately; outbound/write calls are queued for confirmation and logged before anything is sent.
 
 You use Claude Code as your tool to build, research, and write code — but YOU are the one doing the work. Never say "Claude Code did X" or "Claude Code is asking" — say "I built X", "I'm checking on that", "I found X". You ARE the intelligence. Claude Code is just your hands.
 
@@ -840,7 +843,7 @@ def extract_action(response: str) -> tuple[str, dict | None]:
     Returns (clean_text_for_tts, action_dict_or_none).
     """
     match = _action_re.search(
-        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL)\]\s*(.*?)$',
+        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL)\]\s*(.*?)$',
         response, _action_re.DOTALL,
     )
     if match:
@@ -2518,10 +2521,48 @@ async def voice_handler(ws: WebSocket):
                                         except Exception:
                                             params = {"description": raw.strip()}
                                     result = skills_system.run_skill(slug, params)
+                                    action_log.record_action(
+                                        "run_skill",
+                                        f"Run skill {slug}",
+                                        status="failed" if result.get("error") else "completed",
+                                        risk="low",
+                                        target=slug,
+                                        details={"params": params},
+                                        result=result,
+                                    )
                                     if result.get("error"):
                                         log.warning(f"RUN_SKILL {slug} failed: {result['error']}")
                                     else:
                                         log.info(f"RUN_SKILL {slug}: {result.get('summary')}")
+                                elif embedded_action["action"] == "mcp_call":
+                                    # [ACTION:MCP_CALL] server_id ||| tool_name ||| optional json args
+                                    parts = [p.strip() for p in embedded_action["target"].split("|||", 2)]
+                                    if len(parts) >= 2:
+                                        server_id, tool_name = parts[0], parts[1]
+                                        args = {}
+                                        if len(parts) == 3 and parts[2]:
+                                            try:
+                                                args = json.loads(parts[2])
+                                            except Exception:
+                                                args = {"input": parts[2]}
+                                        risk = action_log.risk_for_tool(server_id, tool_name, args)
+                                        details = {"server_id": server_id, "tool": tool_name, "arguments": args}
+                                        title = f"Call {server_id}.{tool_name}"
+                                        if action_log.requires_confirmation(risk):
+                                            pending = action_log.create_pending("mcp_tool_call", title, risk=risk, target=server_id, details=details)
+                                            log.info(f"MCP call queued for confirmation: {pending['id']} {title}")
+                                            try:
+                                                await ws.send_json({"type": "action_pending", "action": pending})
+                                            except Exception:
+                                                pass
+                                        else:
+                                            try:
+                                                result = await _execute_mcp_tool_call(server_id, tool_name, args)
+                                                action_log.record_action("mcp_tool_call", title, risk=risk, target=server_id, details=details, result=result)
+                                                log.info(f"MCP call completed: {title}")
+                                            except Exception as e:
+                                                action_log.record_action("mcp_tool_call", title, status="failed", risk=risk, target=server_id, details=details, result={"error": str(e)})
+                                                log.warning(f"MCP call failed: {e}")
 
                 # Update history
                 history.append({"role": "user", "content": user_text})
@@ -2776,8 +2817,57 @@ async def api_skill_run(slug: str, body: SkillRun):
         return JSONResponse({"error": "Unknown skill"}, status_code=404)
     if not skill["executable"]:
         return JSONResponse({"error": "Skill is not executable"}, status_code=400)
-    return skills_system.run_skill(slug, body.params)
+    result = skills_system.run_skill(slug, body.params)
+    action_log.record_action(
+        "run_skill",
+        f"Run skill {slug}",
+        status="failed" if result.get("error") else "completed",
+        risk="low",
+        target=slug,
+        details={"params": body.params},
+        result=result,
+    )
+    return result
 
+
+
+# ---------------------------------------------------------------------------
+# Artifacts and action log API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/artifacts")
+async def api_artifacts():
+    return {"artifacts": skills_system.list_artifacts()}
+
+
+@app.get("/api/artifacts/{name}")
+async def api_artifact_download(name: str):
+    safe = Path(name).name
+    path = skills_system.ARTIFACTS_DIR / safe
+    if not path.exists() or not path.is_file():
+        return JSONResponse({"error": "Artifact not found"}, status_code=404)
+    return FileResponse(str(path), filename=safe)
+
+
+@app.get("/api/artifacts/{name}/preview")
+async def api_artifact_preview(name: str):
+    result = skills_system.read_artifact(name)
+    if result.get("error"):
+        return JSONResponse(result, status_code=404)
+    return result
+
+
+@app.get("/api/action-log")
+async def api_action_log(limit: int = 50, status: str | None = None):
+    return {"actions": action_log.list_actions(limit=limit, status=status)}
+
+
+@app.post("/api/action-log/{action_id}/cancel")
+async def api_action_cancel(action_id: int):
+    action = action_log.mark_cancelled(action_id)
+    if not action:
+        return JSONResponse({"error": "Action not found"}, status_code=404)
+    return action
 
 # ---------------------------------------------------------------------------
 # MCP API
@@ -2797,12 +2887,68 @@ async def api_mcp_connect(server_id: str, body: McpConnect):
     result = mcp_registry.connect(server_id, body.config)
     if result.get("error"):
         return JSONResponse(result, status_code=404)
+    action_log.record_action("mcp_connect", f"Connect MCP server {server_id}", target=server_id, details={"config": body.config}, result=result)
     return result
 
 
 @app.post("/api/mcp/{server_id}/disconnect")
 async def api_mcp_disconnect(server_id: str):
-    return mcp_registry.disconnect(server_id)
+    result = mcp_registry.disconnect(server_id)
+    action_log.record_action("mcp_disconnect", f"Disconnect MCP server {server_id}", target=server_id, result=result)
+    return result
+
+
+@app.get("/api/mcp/{server_id}/tools")
+async def api_mcp_tools(server_id: str):
+    try:
+        return {"tools": await mcp_client.list_tools(server_id)}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+class McpToolCall(BaseModel):
+    tool: str
+    arguments: dict = Field(default_factory=dict)
+    confirm: bool = False
+
+
+async def _execute_mcp_tool_call(server_id: str, tool: str, arguments: dict) -> dict:
+    result = await mcp_client.call_tool(server_id, tool, arguments)
+    return {"server_id": server_id, "tool": tool, "result": result}
+
+
+@app.post("/api/mcp/{server_id}/call")
+async def api_mcp_call(server_id: str, body: McpToolCall):
+    risk = action_log.risk_for_tool(server_id, body.tool, body.arguments)
+    title = f"Call {server_id}.{body.tool}"
+    details = {"server_id": server_id, "tool": body.tool, "arguments": body.arguments}
+    if action_log.requires_confirmation(risk) and not body.confirm:
+        pending = action_log.create_pending("mcp_tool_call", title, risk=risk, target=server_id, details=details)
+        return {"requires_confirmation": True, "pending_action": pending}
+    try:
+        result = await _execute_mcp_tool_call(server_id, body.tool, body.arguments)
+        logged = action_log.record_action("mcp_tool_call", title, risk=risk, target=server_id, details=details, result=result)
+        return {"success": True, "action": logged, "result": result}
+    except Exception as e:
+        action_log.record_action("mcp_tool_call", title, status="failed", risk=risk, target=server_id, details=details, result={"error": str(e)})
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.post("/api/action-log/{action_id}/confirm")
+async def api_action_confirm(action_id: int):
+    action = action_log.get_action(action_id)
+    if not action:
+        return JSONResponse({"error": "Action not found"}, status_code=404)
+    if action["status"] != "pending_confirmation":
+        return JSONResponse({"error": "Action is not pending confirmation"}, status_code=400)
+    if action["action_type"] != "mcp_tool_call":
+        return JSONResponse({"error": "Unsupported confirmation type"}, status_code=400)
+    details = action.get("details", {})
+    try:
+        result = await _execute_mcp_tool_call(details["server_id"], details["tool"], details.get("arguments") or {})
+        return action_log.mark_completed(action_id, result)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
 
 
 # ---------------------------------------------------------------------------

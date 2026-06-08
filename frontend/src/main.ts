@@ -31,6 +31,8 @@ const metricTokens = document.getElementById("metric-tokens")!;
 const eventLog = document.getElementById("event-log")!;
 const dropZone = document.getElementById("drop-zone")!;
 const quickActions = document.getElementById("quick-actions")!;
+const artifactList = document.getElementById("artifact-list")!;
+const pendingActions = document.getElementById("pending-actions")!;
 
 const statePill = document.getElementById("state-pill")!;
 const statePillLabel = document.getElementById("state-pill-label")!;
@@ -248,6 +250,11 @@ socket.onMessage((msg) => {
   } else if (type === "task_complete") {
     console.log("[task]", "complete:", msg.task_id, msg.status, msg.summary);
     addLog(`Task complete: ${msg.summary || msg.status}`, "system");
+  } else if (type === "action_pending") {
+    const action = msg.action as { id?: number; title?: string; risk?: string };
+    addLog(`Confirmation needed: ${action.title || "external action"}`, "system");
+    showToast(`Confirmation needed: ${action.title || "external action"}`, "info", 7000);
+    refreshPendingActions();
   }
 });
 
@@ -403,8 +410,98 @@ dropZone.addEventListener("drop", async (event) => {
 addLog("Mission control online.", "system");
 refreshSystemMetrics();
 refreshUsage();
+refreshArtifacts();
+refreshPendingActions();
 setInterval(refreshSystemMetrics, 5000);
 setInterval(refreshUsage, 8000);
+setInterval(refreshArtifacts, 15000);
+setInterval(refreshPendingActions, 10000);
+
+
+// ---------------------------------------------------------------------------
+// Artifacts + guardrail action queue
+// ---------------------------------------------------------------------------
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "\'": "&#039;" }[ch] || ch));
+}
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes)) return "--";
+  if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes > 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${Math.max(0, Math.round(bytes))} B`;
+}
+
+async function refreshArtifacts() {
+  try {
+    const res = await fetch("/api/artifacts");
+    const data = await res.json();
+    const artifacts = (data.artifacts || []) as Array<{ name: string; size: number; modified_at: number; download_url: string }>;
+    if (artifacts.length === 0) {
+      artifactList.innerHTML = `<div class="mini-row"><strong>No artifacts yet</strong><small>Executable skills will appear here.</small></div>`;
+      return;
+    }
+    artifactList.innerHTML = artifacts.slice(0, 5).map((a) => `
+      <div class="mini-row">
+        <strong>${escapeHtml(a.name)}</strong>
+        <small>${formatBytes(Number(a.size))} · ${new Date(Number(a.modified_at) * 1000).toLocaleString()}</small>
+        <div class="mini-actions"><button data-open-artifact="${escapeHtml(a.download_url)}">Open</button><button data-copy-artifact="${escapeHtml(a.name)}">Copy name</button></div>
+      </div>`).join("");
+  } catch {
+    artifactList.innerHTML = `<div class="mini-row"><strong>Artifacts unavailable</strong></div>`;
+  }
+}
+
+async function refreshPendingActions() {
+  try {
+    const res = await fetch("/api/action-log?status=pending_confirmation&limit=10");
+    const data = await res.json();
+    const actions = (data.actions || []) as Array<{ id: number; title: string; risk: string; created_at: number }>;
+    if (actions.length === 0) {
+      pendingActions.innerHTML = `<div class="mini-row"><strong>No pending actions</strong><small>Outbound tool calls pause here before execution.</small></div>`;
+      return;
+    }
+    pendingActions.innerHTML = actions.map((a) => `
+      <div class="mini-row">
+        <strong>${escapeHtml(a.title)}</strong>
+        <small>${escapeHtml(a.risk.toUpperCase())} risk · ${new Date(Number(a.created_at) * 1000).toLocaleTimeString()}</small>
+        <div class="mini-actions"><button class="danger" data-confirm-action="${a.id}">Confirm</button><button data-cancel-action="${a.id}">Cancel</button></div>
+      </div>`).join("");
+  } catch {
+    pendingActions.innerHTML = `<div class="mini-row"><strong>Action guard unavailable</strong></div>`;
+  }
+}
+
+document.getElementById("btn-artifacts-refresh")?.addEventListener("click", refreshArtifacts);
+document.getElementById("btn-action-refresh")?.addEventListener("click", refreshPendingActions);
+
+artifactList.addEventListener("click", async (event) => {
+  const target = event.target as HTMLElement;
+  const open = target.closest<HTMLButtonElement>("button[data-open-artifact]");
+  const copy = target.closest<HTMLButtonElement>("button[data-copy-artifact]");
+  if (open) window.open(open.dataset.openArtifact, "_blank");
+  if (copy) {
+    await navigator.clipboard.writeText(copy.dataset.copyArtifact || "");
+    showToast("Artifact name copied", "success");
+  }
+});
+
+pendingActions.addEventListener("click", async (event) => {
+  const target = event.target as HTMLElement;
+  const confirmBtn = target.closest<HTMLButtonElement>("button[data-confirm-action]");
+  const cancelBtn = target.closest<HTMLButtonElement>("button[data-cancel-action]");
+  const id = confirmBtn?.dataset.confirmAction || cancelBtn?.dataset.cancelAction;
+  if (!id) return;
+  const path = confirmBtn ? `/api/action-log/${id}/confirm` : `/api/action-log/${id}/cancel`;
+  const res = await fetch(path, { method: "POST" });
+  if (!res.ok) {
+    showToast(confirmBtn ? "Confirmation failed" : "Cancel failed", "error");
+    return;
+  }
+  showToast(confirmBtn ? "Action confirmed" : "Action cancelled", confirmBtn ? "success" : "info");
+  refreshPendingActions();
+});
 
 // ---------------------------------------------------------------------------
 // Text command bar — type to JARVIS
