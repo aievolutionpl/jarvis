@@ -26,11 +26,13 @@
 - **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, language, personality, and launch readiness.
 - **Multi-provider API catalog** — save core and optional keys from the settings panel; no manual `.env` editing required.
 - **Voice-first assistant** — Web Speech API transcription, LLM response generation, and TTS playback.
-- **Cinematic visualization** — Three.js audio-reactive orb plus MARK XL-inspired HUD panels.
-- **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs with a path for task-specific downloadable skills.
+- **Cinematic visualization** — Three.js audio-reactive orb, MARK XL-inspired HUD panels, heartbeat wave animations, and linear progress metric charts.
+- **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs.
+- **Memory & Workflow tabs** — features a persistent SQLite memory viewer, search chips, mini-kanban task board, live agent state monitoring, and autonomous goal execution history.
 - **Developer automation** — can spawn Claude Code sessions, scan projects, open terminals, and use prompt templates.
 - **Personal operating layer** — calendar, mail, notes, tasks, memory, planning, and screen context.
-- **Windows-friendly setup path** — `start.ps1`, automatic current-user desktop shortcut creation, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
+- **Full Polish (PL) and English (EN) localization** — switch interface languages on the fly, including translated log files, toasts, state descriptions, and file uploads.
+- **Windows-friendly setup path** — `start.ps1`, automatic current-user desktop shortcut creation, cross-platform provider/status metadata, and Vite development server running on port `5180`.
 
 ---
 
@@ -149,7 +151,7 @@ cd frontend
 npm run dev
 ```
 
-Open Chrome at <http://localhost:5173>. The onboarding panel will guide you through keys and profile setup.
+Open Chrome at <http://localhost:5180>. The onboarding panel will guide you through keys and profile setup.
 
 ### Windows PowerShell
 
@@ -159,7 +161,7 @@ cd jarvis
 .\start.ps1
 ```
 
-Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed, installs a **JARVIS by AI Evolution Labs** shortcut on the current user desktop, and starts backend/frontend terminals.
+Then open Chrome at <http://localhost:5180>. The launcher creates `.env` from `.env.example` when needed, installs a **JARVIS by AI Evolution Labs** shortcut on the current user desktop, and starts backend/frontend terminals.
 
 ---
 
