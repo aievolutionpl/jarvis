@@ -173,7 +173,7 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
 # fmt: on
 
 # Slugs whose enabling injects an explicit note that an executable generator exists.
-EXECUTABLE_SLUGS = {"invoice-creation", "sop-writing", "meeting-agenda"}
+EXECUTABLE_SLUGS = {"invoice-creation", "sop-writing", "meeting-agenda", "email-newsletter", "proposal-writing", "meeting-minutes", "expense-tracking"}
 
 # Default skills enabled on a fresh install (broadly useful for most users).
 DEFAULT_ENABLED = {
@@ -400,6 +400,34 @@ def _save_artifact(name: str, content: str) -> Path:
     return path
 
 
+
+def list_artifacts(limit: int = 50) -> list[dict]:
+    """Return recent artifacts produced by executable skills."""
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    items = []
+    for path in sorted(ARTIFACTS_DIR.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]:
+        if not path.is_file():
+            continue
+        stat = path.stat()
+        items.append({
+            "name": path.name,
+            "path": str(path),
+            "size": stat.st_size,
+            "modified_at": stat.st_mtime,
+            "download_url": f"/api/artifacts/{path.name}",
+        })
+    return items
+
+
+def read_artifact(name: str, max_chars: int = 12000) -> dict:
+    """Read an artifact by safe file name for previewing in the UI."""
+    safe = Path(name).name
+    path = ARTIFACTS_DIR / safe
+    if not path.exists() or not path.is_file():
+        return {"error": "Artifact not found"}
+    content = path.read_text(encoding="utf-8", errors="replace")
+    return {"name": safe, "path": str(path), "content": content[:max_chars], "truncated": len(content) > max_chars}
+
 def _run_invoice(params: dict) -> dict:
     from datetime import datetime, timedelta
     seller = params.get("seller", "Your Company")
@@ -458,10 +486,100 @@ def _run_agenda(params: dict) -> dict:
     return {"summary": f"Agenda '{title}' with {len(topics)} topics", "path": str(path), "content": content}
 
 
+
+def _run_email_newsletter(params: dict) -> dict:
+    audience = params.get("audience", "customers")
+    topic = params.get("topic") or params.get("description", "Company update")
+    cta = params.get("cta", "Reply with any questions")
+    sections = params.get("sections") or ["Why it matters", "What is changing", "Next step"]
+    lines = [
+        f"Subject option A: {topic}: the short version",
+        f"Subject option B: A useful update for {audience}",
+        f"Preview text: {params.get('preview', 'A concise update with one clear next step.')}",
+        "",
+        f"Hi {params.get('greeting', 'there')},",
+        "",
+        f"Here is the practical update on {topic}.",
+    ]
+    for section in sections:
+        lines += ["", f"## {section}", params.get(str(section).lower().replace(' ', '_'), "Add the key point here in two or three skimmable sentences.")]
+    lines += ["", f"Primary CTA: {cta}", "", f"Sign-off: {params.get('signoff', 'Best,')}" ]
+    content = "\n".join(lines)
+    path = _save_artifact(f"newsletter_{topic}.md", content)
+    return {"summary": f"Newsletter draft for {audience} about {topic}", "path": str(path), "content": content}
+
+
+def _run_proposal(params: dict) -> dict:
+    client = params.get("client", "Client")
+    project = params.get("project") or params.get("description", "Project")
+    deliverables = params.get("deliverables") or ["Discovery", "Implementation", "Handoff"]
+    timeline = params.get("timeline", "TBD")
+    price = params.get("price", "TBD")
+    lines = [
+        f"# Proposal: {project}",
+        f"Prepared for: {client}",
+        "",
+        "## Client Problem",
+        params.get("problem", "State the client's problem in their words."),
+        "",
+        "## Recommended Scope",
+    ]
+    for item in deliverables:
+        lines.append(f"- {item}")
+    lines += [
+        "", "## Timeline", str(timeline),
+        "", "## Investment", str(price),
+        "", "## Assumptions", params.get("assumptions", "Scope, access, and approval timing to be confirmed before kickoff."),
+        "", "## Next Step", params.get("next_step", "Approve this proposal and schedule kickoff."),
+    ]
+    content = "\n".join(lines)
+    path = _save_artifact(f"proposal_{client}_{project}.md", content)
+    return {"summary": f"Proposal draft for {client}: {project}", "path": str(path), "content": content}
+
+
+def _run_meeting_minutes(params: dict) -> dict:
+    title = params.get("title", "Meeting Minutes")
+    attendees = params.get("attendees") or []
+    decisions = params.get("decisions") or []
+    actions = params.get("actions") or []
+    open_questions = params.get("open_questions") or []
+    lines = [f"# Minutes: {title}", "", f"Date: {params.get('date', time.strftime('%Y-%m-%d'))}", f"Attendees: {', '.join(attendees) if attendees else 'TBD'}", "", "## Summary", params.get("summary", "What changed and what happens next."), "", "## Decisions"]
+    lines += [f"- {d}" for d in decisions] or ["- None captured"]
+    lines += ["", "## Action Items"]
+    if actions:
+        for item in actions:
+            if isinstance(item, dict):
+                lines.append(f"- {item.get('owner', 'TBD')}: {item.get('task', '')} — due {item.get('due', 'TBD')}")
+            else:
+                lines.append(f"- {item}")
+    else:
+        lines.append("- None captured")
+    lines += ["", "## Open Questions"]
+    lines += [f"- {q}" for q in open_questions] or ["- None captured"]
+    content = "\n".join(lines)
+    path = _save_artifact(f"minutes_{title}.md", content)
+    return {"summary": f"Meeting minutes for {title}", "path": str(path), "content": content}
+
+
+def _run_expense_tracking(params: dict) -> dict:
+    expenses = params.get("expenses") or [{"vendor": params.get("vendor", "Vendor"), "category": params.get("category", "General"), "amount": float(params.get("amount", 0) or 0), "date": params.get("date", time.strftime('%Y-%m-%d'))}]
+    total = sum(float(e.get("amount", 0) or 0) for e in expenses)
+    lines = ["date,vendor,category,amount,notes"]
+    for e in expenses:
+        notes = str(e.get("notes", "")).replace('"', '""')
+        lines.append(f"{e.get('date', '')},{e.get('vendor', '')},{e.get('category', '')},{float(e.get('amount', 0) or 0):.2f},\"{notes}\"")
+    content = "\n".join(lines) + f"\nTOTAL,,,{total:.2f},\n"
+    path = _save_artifact(f"expenses_{time.strftime('%Y%m%d')}.csv", content)
+    return {"summary": f"Expense log with {len(expenses)} item(s), total {total:.2f}", "path": str(path), "content": content}
+
 EXECUTABLE_HANDLERS = {
     "invoice-creation": _run_invoice,
     "sop-writing": _run_sop,
     "meeting-agenda": _run_agenda,
+    "email-newsletter": _run_email_newsletter,
+    "proposal-writing": _run_proposal,
+    "meeting-minutes": _run_meeting_minutes,
+    "expense-tracking": _run_expense_tracking,
 }
 
 

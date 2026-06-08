@@ -25,6 +25,11 @@
           <span>DROP FILES</span>
           <small>Text, code, JSON, Markdown and CSV become instant context.</small>
         </div>
+        <div class="mini-panel-header">
+          <span>ARTIFACTS</span>
+          <button id="btn-artifacts-refresh" title="Refresh artifacts">Refresh</button>
+        </div>
+        <div id="artifact-list" class="mini-list"></div>
       </section>
 
       <section id="hud-right" class="hud-panel">
@@ -44,6 +49,11 @@
           </div>
         </div>
         <div id="event-log" aria-live="polite"></div>
+        <div class="mini-panel-header">
+          <span>ACTION GUARD</span>
+          <button id="btn-action-refresh" title="Refresh pending actions">Refresh</button>
+        </div>
+        <div id="pending-actions" class="mini-list"></div>
       </section>
     </div>
 

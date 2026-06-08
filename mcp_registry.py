@@ -162,6 +162,37 @@ def connected_servers() -> list[dict]:
     return [s for s in list_servers() if s["connected"]]
 
 
+def get_connected_server(server_id: str) -> dict | None:
+    """Return a connected server descriptor enriched with auth/config details."""
+    init_mcp_db()
+    server = _BY_ID.get(server_id)
+    if not server:
+        return None
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM mcp_connections WHERE server_id = ? AND status = 'connected'",
+        (server_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    item = asdict(server)
+    item["capabilities"] = list(server.capabilities)
+    item["connected"] = True
+    item["status"] = row["status"]
+    item["config"] = json.loads(row["config"] or "{}")
+    item["auth_required"] = bool(server.auth_env)
+    item["auth_present"] = _auth_present(server)
+    return item
+
+
+def mark_used(server_id: str) -> None:
+    conn = _get_db()
+    conn.execute("UPDATE mcp_connections SET last_used = ? WHERE server_id = ?", (time.time(), server_id))
+    conn.commit()
+    conn.close()
+
+
 def recommend_servers(profile_tools: str, limit: int = 5) -> list[dict]:
     """Recommend MCP servers based on a free-text description of the user's tools."""
     text = (profile_tools or "").lower()
@@ -187,11 +218,11 @@ def mcp_prompt() -> str:
     connected = connected_servers()
     if not connected:
         return ""
-    lines = ["CONNECTED TOOLS (via MCP — you can use these):"]
+    lines = ["CONNECTED TOOLS (via MCP — you can use these with [ACTION:MCP_CALL] server_id ||| tool_name ||| {json args}):"]
     for s in connected:
         caps = ", ".join(s["capabilities"]) if s["capabilities"] else ""
         warn = "" if s["auth_present"] else " (needs auth key in Settings)"
-        lines.append(f"- {s['name']} ({s['category']}): {caps}{warn}")
+        lines.append(f"- {s['name']} ({s['category']}, id: {s['id']}): {caps}{warn}")
     return "\n".join(lines)
 
 
