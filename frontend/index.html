@@ -3,11 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JARVIS</title>
+    <title>JARVIS — AI Evolution Labs</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <canvas id="orb-canvas"></canvas>
+
+    <a id="brand-link" href="https://aievolutionlabs.io/" target="_blank" rel="noreferrer">AI Evolution Labs</a>
 
     <div id="hud-shell" aria-label="JARVIS mission control">
       <section id="hud-left" class="hud-panel">
@@ -39,6 +41,9 @@
           <button data-command="Look at my screen and summarize what matters.">Scan Screen</button>
           <button data-command="Summarize today's calendar and unread email priorities.">Daily Brief</button>
           <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
+          <button data-command="Draft a client follow-up email based on my notes.">Draft Email</button>
+          <button data-command="Research this market and prepare a sourced brief.">Research Brief</button>
+          <button data-command="Create an invoice draft for a new client.">Invoice Draft</button>
           <button data-command="Review the current JARVIS project and suggest one improvement.">Self Review</button>
         </div>
         <div id="event-log-header">

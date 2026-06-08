@@ -17,23 +17,42 @@
 
 > “Will do, sir.”
 
-JARVIS is a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, mission-control HUD, voice loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and now includes an extensible integration catalog for Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible private agent backends.
+[AI Evolution Labs](https://aievolutionlabs.io/) presents JARVIS: a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, mission-control HUD, voice loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and now includes an extensible integration catalog for Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible private agent backends.
 
 ---
 
 ## Highlights
 
-- **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, and launch readiness.
+- **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, language, personality, and launch readiness.
 - **Multi-provider API catalog** — save core and optional keys from the settings panel; no manual `.env` editing required.
 - **Voice-first assistant** — Web Speech API transcription, LLM response generation, and TTS playback.
 - **Cinematic visualization** — Three.js audio-reactive orb plus MARK XL-inspired HUD panels.
 - **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs with a path for task-specific downloadable skills.
 - **Developer automation** — can spawn Claude Code sessions, scan projects, open terminals, and use prompt templates.
 - **Personal operating layer** — calendar, mail, notes, tasks, memory, planning, and screen context.
-- **Windows-friendly setup path** — `start.ps1`, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
+- **Windows-friendly setup path** — `start.ps1`, automatic current-user desktop shortcut creation, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
 
 ---
 
+
+## What can JARVIS do?
+
+JARVIS is meant to be a personal assistant for everything: voice, text, files, local context, business operations, and developer automation. Example commands:
+
+| Area | Example prompt | What happens |
+| --- | --- | --- |
+| Daily command | “Give me a mission brief for today.” | Combines calendar, open tasks, unread mail, and memory into priorities. |
+| Screen awareness | “Look at my screen and tell me what matters.” | Reads active windows/screenshots and summarizes relevant context. |
+| Research | “Research AI voice assistants for small businesses and cite sources.” | Uses connected research providers/browser tooling to prepare a source-aware brief. |
+| Business ops | “Create an invoice draft for Acme for 12 hours at $120/hour.” | Uses skill packs to generate structured business artifacts. |
+| Email | “Draft a sharp follow-up to yesterday’s client conversation.” | Produces a ready-to-send message while keeping mail access read-only by default. |
+| Planning | “Plan my next three hours around meetings and urgent tasks.” | Suggests time blocks, priorities, and optionally creates tasks/notes. |
+| Development | “Review this project and fix one obvious UI bug.” | Can launch Claude Code workflows, inspect projects, and coordinate code changes. |
+| Personal memory | “Remember that I prefer concise Polish responses for business.” | Stores a durable preference and uses it in future conversations. |
+| Local models | “Switch to Ollama for private offline chats.” | Routes chat through a local Ollama model when configured. |
+| Self-improvement | “Review JARVIS itself and suggest improvements.” | Uses project awareness to inspect its own codebase and propose changes. |
+
+---
 ## Built-in and planned skill packs
 
 | Skill pack | Status | What it enables |
@@ -84,6 +103,20 @@ hosted **Gemini** API is available via the Google AI connector.)
 
 ---
 
+
+## Personalization and language
+
+Open **Settings → User Preferences** and **Settings → Personality Lab** to make the assistant feel like your own:
+
+- **Menu language** — English and Polish UI labels are available now, with saved preference in `.env` as `JARVIS_UI_LANGUAGE`.
+- **Response language** — tell JARVIS to answer by default in English, Polish, Spanish, German, French, Italian, Portuguese, or Ukrainian via `JARVIS_RESPONSE_LANGUAGE`.
+- **Default personality** — the default is Stark-style JARVIS: elegant British butler, loyal, calm under pressure, concise, proactive, and dryly funny.
+- **Personality generator** — generate a custom personality brief from presets like Executive Operator, Supportive Coach, Senior Engineer, and Creative Director.
+- **Fine tuning** — adjust humor, formality, initiative, honorific, user name, and a free-form personality directive.
+
+The settings panel persists these fields to `.env` so the runtime prompt changes without hand-editing configuration files.
+
+---
 ## Requirements
 
 - Python 3.11+
@@ -126,7 +159,7 @@ cd jarvis
 .\start.ps1
 ```
 
-Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed and starts backend/frontend terminals.
+Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed, installs a **JARVIS by AI Evolution Labs** shortcut on the current user desktop, and starts backend/frontend terminals.
 
 ---
 
@@ -146,6 +179,13 @@ HERMES_API_KEY=
 USER_NAME=Tony
 HONORIFIC=sir
 CALENDAR_ACCOUNTS=auto
+JARVIS_UI_LANGUAGE=en
+JARVIS_RESPONSE_LANGUAGE=en
+JARVIS_PERSONALITY_PRESET=stark
+JARVIS_PERSONALITY_BRIEF=Act like Stark-style JARVIS: elegant British butler energy, loyal, concise, calm under pressure, dryly funny, and proactive without being intrusive.
+JARVIS_HUMOR_LEVEL=balanced
+JARVIS_FORMALITY_LEVEL=butler
+JARVIS_PROACTIVE_MODE=smart
 ```
 
 You can also open settings with `,` and add keys from the UI.
