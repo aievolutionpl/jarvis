@@ -18,6 +18,8 @@
           <div><span>UPTIME</span><strong id="metric-uptime">--</strong></div>
           <div><span>LOAD</span><strong id="metric-load">--</strong></div>
           <div><span>DISK</span><strong id="metric-disk">--</strong></div>
+          <div><span>SESSION COST</span><strong id="metric-cost">--</strong></div>
+          <div><span>TOKENS</span><strong id="metric-tokens">--</strong></div>
         </div>
         <div id="drop-zone">
           <span>DROP FILES</span>
@@ -34,8 +36,57 @@
           <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
           <button data-command="Review the current JARVIS project and suggest one improvement.">Self Review</button>
         </div>
+        <div id="event-log-header">
+          <span>ACTIVITY LOG</span>
+          <div class="log-actions">
+            <button id="btn-log-copy" title="Copy log to clipboard">Copy</button>
+            <button id="btn-log-clear" title="Clear log">Clear</button>
+          </div>
+        </div>
         <div id="event-log" aria-live="polite"></div>
       </section>
+    </div>
+
+    <!-- State pill — shows current assistant state -->
+    <div id="state-pill" class="state-idle">
+      <span class="state-dot"></span>
+      <span id="state-pill-label">idle</span>
+    </div>
+
+    <!-- Text command bar — type to JARVIS -->
+    <form id="command-bar" autocomplete="off">
+      <input
+        id="command-input"
+        type="text"
+        placeholder="Type a command, or press / to focus…"
+        aria-label="Type a command to JARVIS"
+        maxlength="2000"
+      />
+      <button id="command-send" type="submit" title="Send (Enter)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </form>
+
+    <!-- Toast notifications -->
+    <div id="toast-stack" aria-live="polite"></div>
+
+    <!-- Keyboard shortcuts overlay -->
+    <div id="shortcuts-overlay" style="display:none">
+      <div class="shortcuts-card">
+        <h2>Keyboard Shortcuts</h2>
+        <ul>
+          <li><kbd>/</kbd><span>Focus command bar</span></li>
+          <li><kbd>M</kbd><span>Mute / unmute microphone</span></li>
+          <li><kbd>Esc</kbd><span>Stop speaking · close panels</span></li>
+          <li><kbd>L</kbd><span>Clear activity log</span></li>
+          <li><kbd>,</kbd><span>Open settings</span></li>
+          <li><kbd>?</kbd><span>Toggle this help</span></li>
+        </ul>
+        <small>Press <kbd>?</kbd> or <kbd>Esc</kbd> to close</small>
+      </div>
     </div>
 
     <!-- Minimal controls — top right -->
@@ -45,6 +96,13 @@
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
           <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           <line x1="12" y1="19" x2="12" y2="23"/>
+        </svg>
+      </button>
+      <button id="btn-help" title="Keyboard shortcuts (?)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
       </button>
       <button id="btn-menu" title="Menu">
