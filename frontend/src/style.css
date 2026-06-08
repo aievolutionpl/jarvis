@@ -961,3 +961,138 @@ html, body {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Onboarding + provider marketplace polish
+   --------------------------------------------------------------------------- */
+
+.onboarding-hero {
+  padding: 2px 0 12px;
+}
+
+.onboarding-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(125, 211, 252, 0.55);
+  font-size: 10px;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+}
+
+.onboarding-hero strong {
+  display: block;
+  color: rgba(240, 249, 255, 0.9);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.onboarding-hero p,
+.section-note {
+  margin-top: 8px;
+  color: rgba(203, 213, 225, 0.52);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.onboarding-steps span {
+  padding: 7px 6px;
+  border: 1px solid rgba(14, 165, 233, 0.12);
+  border-radius: 999px;
+  color: rgba(148, 163, 184, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-align: center;
+}
+
+.onboarding-steps span.active {
+  border-color: rgba(34, 211, 238, 0.42);
+  background: rgba(14, 165, 233, 0.12);
+  color: #7dd3fc;
+  box-shadow: 0 0 18px rgba(14, 165, 233, 0.12);
+}
+
+.provider-grid,
+.skill-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.provider-card,
+.skill-card {
+  padding: 12px;
+  border: 1px solid rgba(14, 165, 233, 0.1);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(8, 18, 34, 0.72), rgba(2, 6, 12, 0.5)),
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.12), transparent 42%);
+}
+
+.provider-card.configured,
+.skill-card.bundled {
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.provider-card-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.provider-card-header div {
+  flex: 1;
+}
+
+.provider-card strong,
+.skill-card strong {
+  display: block;
+  color: rgba(226, 242, 255, 0.88);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.provider-card small,
+.skill-card span,
+.skill-card small {
+  display: block;
+  color: rgba(125, 211, 252, 0.5);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.provider-card-header a {
+  color: rgba(56, 189, 248, 0.7);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.provider-card p,
+.skill-card p {
+  margin: 8px 0 10px;
+  color: rgba(203, 213, 225, 0.52);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.provider-card input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  outline: none;
+}
+
+.skill-card.optional {
+  border-style: dashed;
+}
