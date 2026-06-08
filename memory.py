@@ -258,6 +258,64 @@ def get_important_memories(limit: int = 10) -> list[dict]:
     return [dict(r) for r in results]
 
 
+def delete_memory(mem_id: int) -> bool:
+    """Delete a memory by ID. Returns True if deleted."""
+    conn = _get_db()
+    cur = conn.execute("DELETE FROM memories WHERE id = ?", (mem_id,))
+    # Also remove from FTS
+    try:
+        conn.execute("DELETE FROM memory_fts WHERE rowid = ?", (mem_id,))
+    except Exception:
+        pass
+    conn.commit()
+    deleted = cur.rowcount > 0
+    conn.close()
+    if deleted:
+        log.info(f"Deleted memory #{mem_id}")
+    return deleted
+
+
+def get_all_memories(limit: int = 100, offset: int = 0, mem_type: str | None = None) -> list[dict]:
+    """Get memories with pagination and optional type filter."""
+    conn = _get_db()
+    q = "SELECT * FROM memories"
+    params: list = []
+    if mem_type:
+        q += " WHERE type = ?"
+        params.append(mem_type)
+    q += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    results = conn.execute(q, params).fetchall()
+    conn.close()
+    return [dict(r) for r in results]
+
+
+def memory_stats() -> dict:
+    """Get memory statistics."""
+    conn = _get_db()
+    total = conn.execute("SELECT COUNT(*) as c FROM memories").fetchone()["c"]
+    by_type = conn.execute(
+        "SELECT type, COUNT(*) as c FROM memories GROUP BY type ORDER BY c DESC"
+    ).fetchall()
+    recent = conn.execute(
+        "SELECT COUNT(*) as c FROM memories WHERE created_at > ?",
+        (time.time() - 86400,)
+    ).fetchone()["c"]
+    task_count = conn.execute(
+        "SELECT COUNT(*) as c FROM tasks WHERE status IN ('open', 'in_progress')"
+    ).fetchone()["c"]
+    note_count = conn.execute("SELECT COUNT(*) as c FROM notes").fetchone()["c"]
+    conn.close()
+    return {
+        "total_memories": total,
+        "by_type": {r["type"]: r["c"] for r in by_type},
+        "last_24h": recent,
+        "open_tasks": task_count,
+        "total_notes": note_count,
+    }
+
+
+
 # ---------------------------------------------------------------------------
 # Tasks
 # ---------------------------------------------------------------------------
