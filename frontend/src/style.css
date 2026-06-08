@@ -1096,3 +1096,262 @@ html, body {
 .skill-card.optional {
   border-style: dashed;
 }
+
+/* ---------------------------------------------------------------------------
+   Skills browser, toggles, category chips, MCP cards
+   --------------------------------------------------------------------------- */
+
+.skills-count {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(125, 211, 252, 0.55);
+  text-transform: none;
+}
+
+.skills-search {
+  width: 100%;
+  margin: 4px 0 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  outline: none;
+}
+
+.skills-search:focus {
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
+.skills-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.skill-chip {
+  padding: 5px 10px;
+  border: 1px solid rgba(14, 165, 233, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 18, 34, 0.5);
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skill-chip em {
+  font-style: normal;
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+.skill-chip:hover {
+  color: #cbe9ff;
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.skill-chip.active {
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #7dd3fc;
+}
+
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(14, 165, 233, 0.08);
+  border-radius: 12px;
+  background: rgba(8, 16, 30, 0.5);
+}
+
+.skill-row.enabled {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(8, 22, 18, 0.5);
+}
+
+.skill-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.skill-row-main strong {
+  display: block;
+  color: rgba(226, 242, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.skill-exec {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.16);
+  color: #7dd3fc;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.skill-row-main small {
+  display: block;
+  margin-top: 1px;
+  color: rgba(125, 211, 252, 0.45);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.skill-row-main p {
+  margin: 6px 0 0;
+  color: rgba(203, 213, 225, 0.55);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.skill-toggle {
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.skill-toggle span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(226, 242, 255, 0.6);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.skill-toggle.on {
+  background: rgba(34, 197, 94, 0.32);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.skill-toggle.on span {
+  transform: translateX(18px);
+  background: #6ee7a8;
+}
+
+.mcp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mcp-card {
+  padding: 12px;
+  border: 1px solid rgba(14, 165, 233, 0.1);
+  border-radius: 14px;
+  background: rgba(8, 16, 30, 0.5);
+}
+
+.mcp-card.connected {
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.mcp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.mcp-card-head div {
+  flex: 1;
+  min-width: 0;
+}
+
+.mcp-card-head strong {
+  display: block;
+  color: rgba(226, 242, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mcp-card-head small {
+  display: block;
+  color: rgba(125, 211, 252, 0.5);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+}
+
+.mcp-btn {
+  flex-shrink: 0;
+}
+
+.mcp-card p {
+  margin: 8px 0 0;
+  color: rgba(203, 213, 225, 0.52);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mcp-warn {
+  display: block;
+  margin-top: 8px;
+  color: rgba(251, 191, 36, 0.75);
+  font-size: 11px;
+}
+
+/* Settings panel on narrow screens — full width, comfortable touch targets */
+@media (max-width: 560px) {
+  .settings-panel {
+    width: 100%;
+    border-left: none;
+  }
+
+  .skills-list {
+    max-height: 300px;
+  }
+
+  .onboarding-steps {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+
+  .onboarding-steps span {
+    padding: 6px 2px;
+    font-size: 9px;
+    letter-spacing: 0.3px;
+  }
+
+  .skill-toggle {
+    width: 46px;
+    height: 26px;
+  }
+
+  .skill-toggle span {
+    width: 20px;
+    height: 20px;
+  }
+
+  .skill-toggle.on span {
+    transform: translateX(20px);
+  }
+}
