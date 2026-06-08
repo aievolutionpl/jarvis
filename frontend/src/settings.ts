@@ -155,6 +155,8 @@ const TAB_SECTIONS: Record<string, string[]> = {
 };
 
 function showTab(tabName: string) {
+  panelEl?.classList.add("show-content");
+
   // Update active class on nav links
   document.querySelectorAll(".nav-link").forEach((link) => {
     const target = (link as HTMLElement).dataset.targetTab;
@@ -206,9 +208,19 @@ function showTab(tabName: string) {
 const I18N: Record<string, Record<string, string>> = {
   en: {
     settings: "Settings", keys: "API Keys", engine: "Engine", skills: "Skills", tools: "Connected Tools", status: "Connection Status", prefs: "User Preferences", personality: "Personality Lab", system: "System Info", save: "Save Preferences", generate: "Generate JARVIS Personality", language: "Menu Language", voiceLanguage: "Response Language", name: "Your Name", honorific: "Honorific", calendar: "Calendar Accounts", preset: "Personality Preset", humor: "Humor", formality: "Formality", initiative: "Initiative", brief: "Custom Personality Brief", nextSkills: "Next: Skills", nextTools: "Next: Tools", nextProfile: "Next: Profile", nextPersonality: "Next: Personality", nextEngine: "Next: Engine", finish: "Launch JARVIS",
+    missionControl: "MISSION CONTROL", liveSystems: "Live Systems", metricLink: "LINK", metricUptime: "UPTIME", metricLoad: "SYSTEM LOAD", metricDisk: "DISK SPACE", metricCost: "SESSION COST", metricTokens: "TOKENS", dropFiles: "DROP FILES HERE", dropFilesNote: "Text, code, JSON, Markdown and CSV become instant context.", artifacts: "ARTIFACTS", refresh: "Refresh", commandDeck: "COMMAND DECK", rapidActions: "Rapid Actions", actionScanScreen: "Scan Screen", actionDailyBrief: "Daily Brief", actionTaskFocus: "Task Focus", actionDraftEmail: "Draft Email", actionResearchBrief: "Research Brief", actionInvoiceDraft: "Invoice Draft", actionSelfReview: "Self Review", activityLog: "ACTIVITY LOG", copy: "Copy", clear: "Clear", actionGuard: "ACTION GUARD", commandPlaceholder: "Type a command, or press / to focus…", restartServer: "Restart Server", fixYourself: "Fix Yourself",
+    shortcutsTitle: "Keyboard Shortcuts", shortcutFocus: "Focus command bar", shortcutMute: "Mute / unmute microphone", shortcutStop: "Stop speaking · close panels", shortcutClear: "Clear activity log", shortcutSettings: "Open settings", shortcutToggle: "Toggle this help", shortcutClose: "Press ? or Esc to close", back: "← Back", activeListening: "ACTIVE & LISTENING",
+    actionScanScreenSub: "Capture & analyze", actionDailyBriefSub: "Summarize today", actionTaskFocusSub: "Define & execute", actionDraftEmailSub: "Compose message", actionResearchBriefSub: "Deep dive research", actionInvoiceDraftSub: "Create invoice", actionSelfReviewSub: "Analyze performance", export: "Export", statusOnline: "ONLINE",
+    footerSecure: "SECURE CONNECTION · SSL ENCRYPTED", footerLocation: "LOCATION", footerModel: "MODEL", footerBrand: "JARVIS v2.0 · BUILT FOR EXCELLENCE", today: "Today", used: "Used",
+    tabOnboarding: "Keys & Start", tabSkills: "Skills", tabMcp: "MCP Tools", tabEngine: "LLM Brain", tabProfile: "Profile & Language", tabPersonality: "Personality", tabMemory: "Memory Base", tabWorkflow: "Workflow & Agent", tabSystem: "Status & Info"
   },
   pl: {
     settings: "Ustawienia", keys: "Klucze API", engine: "Silnik", skills: "Umiejętności", tools: "Narzędzia", status: "Status Połączeń", prefs: "Preferencje", personality: "Laboratorium Osobowości", system: "Informacje", save: "Zapisz Preferencje", generate: "Wygeneruj Osobowość JARVIS-a", language: "Język Menu", voiceLanguage: "Język Odpowiedzi", name: "Twoje Imię", honorific: "Zwrot", calendar: "Konta Kalendarza", preset: "Styl Osobowości", humor: "Humor", formality: "Formalność", initiative: "Inicjatywa", brief: "Własny Opis Osobowości", nextSkills: "Dalej: Umiejętności", nextTools: "Dalej: Narzędzia", nextProfile: "Dalej: Profil", nextPersonality: "Dalej: Osobowość", nextEngine: "Dalej: Silnik", finish: "Uruchom JARVIS-a",
+    missionControl: "CENTRUM STEROWANIA", liveSystems: "Systemy Live", metricLink: "POŁĄCZENIE", metricUptime: "CZAS PRACY", metricLoad: "OBCIĄŻENIE", metricDisk: "DYSK", metricCost: "KOSZT SESJI", metricTokens: "TOKENY", dropFiles: "UPUŚĆ PLIKI TUTAJ", dropFilesNote: "Tekst, kod, JSON, Markdown i CSV stają się natychmiastowym kontekstem.", artifacts: "ARTEFAKTY", refresh: "Odśwież", commandDeck: "PULPIT DOWODZENIA", rapidActions: "Szybkie Akcje", actionScanScreen: "Skanuj Ekran", actionDailyBrief: "Dzienny Skrót", actionTaskFocus: "Skupienie na Zadaniach", actionDraftEmail: "Szkic E-maila", actionResearchBrief: "Raport Badawczy", actionInvoiceDraft: "Szkic Faktury", actionSelfReview: "Autorefleksja", activityLog: "REJESTR AKTYWNOŚCI", copy: "Kopiuj", clear: "Wyczyść", actionGuard: "STRAŻNIK AKCJI", commandPlaceholder: "Wpisz polecenie lub naciśnij / aby skupić…", restartServer: "Zrestartuj Serwer", fixYourself: "Napraw Się",
+    shortcutsTitle: "Skróty Klawiszowe", shortcutFocus: "Aktywuj pasek poleceń", shortcutMute: "Wycisz / włącz mikrofon", shortcutStop: "Zatrzymaj mówienie · zamknij panele", shortcutClear: "Wyczyść rejestr aktywności", shortcutSettings: "Otwórz ustawienia", shortcutToggle: "Przełącz tę pomoc", shortcutClose: "Naciśnij ? lub Esc, aby zamknąć", back: "← Wstecz", activeListening: "AKTYWNY & SŁUCHA",
+    actionScanScreenSub: "Przechwyć i analizuj", actionDailyBriefSub: "Podsumuj dzisiejszy dzień", actionTaskFocusSub: "Zdefiniuj i wykonaj", actionDraftEmailSub: "Utwórz wiadomość", actionResearchBriefSub: "Głęboka analiza rynku", actionInvoiceDraftSub: "Przygotuj fakturę", actionSelfReviewSub: "Analizuj wydajność", export: "Eksport", statusOnline: "ONLINE",
+    footerSecure: "BEZPIECZNE POŁĄCZENIE · SZYFROWANIE SSL", footerLocation: "LOKALIZACJA", footerModel: "MODEL", footerBrand: "JARVIS v2.0 · ZBUDOWANY DLA DOSKONAŁOŚCI", today: "Dziś", used: "Użyte",
+    tabOnboarding: "Klucze & Start", tabSkills: "Umiejętności", tabMcp: "Narzędzia MCP", tabEngine: "Mózg (LLM)", tabProfile: "Profil i Język", tabPersonality: "Osobowość", tabMemory: "Pamięć", tabWorkflow: "Workflow", tabSystem: "Status & Info"
   },
 };
 
@@ -220,14 +232,21 @@ function t(key: string): string {
 // Localization
 // ---------------------------------------------------------------------------
 
-function applyLanguage(lang?: string) {
+export function applyLanguage(lang?: string) {
   currentLanguage = lang || currentLanguage || "en";
   localStorage.setItem("jarvis.uiLanguage", currentLanguage);
   document.documentElement.lang = currentLanguage;
+  
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
     const key = el.dataset.i18n || "";
     el.textContent = t(key);
   });
+
+  document.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.dataset.i18nPlaceholder || "";
+    el.placeholder = t(key);
+  });
+
   const ui = document.getElementById("input-ui-language") as HTMLSelectElement | null;
   if (ui) ui.value = currentLanguage;
 }
@@ -270,39 +289,39 @@ function buildPanelHTML(): string {
           <nav class="nav-links">
             <button class="nav-link active" data-target-tab="onboarding">
               <span class="nav-icon">🔑</span>
-              <span>Klucze & Start</span>
+              <span data-i18n="tabOnboarding">Klucze & Start</span>
             </button>
             <button class="nav-link" data-target-tab="skills">
               <span class="nav-icon">⚡</span>
-              <span>Umiejętności</span>
+              <span data-i18n="tabSkills">Umiejętności</span>
             </button>
             <button class="nav-link" data-target-tab="mcp">
               <span class="nav-icon">🔌</span>
-              <span>Narzędzia MCP</span>
+              <span data-i18n="tabMcp">Narzędzia MCP</span>
             </button>
             <button class="nav-link" data-target-tab="engine">
               <span class="nav-icon">🧠</span>
-              <span>Mózg (LLM)</span>
+              <span data-i18n="tabEngine">Mózg (LLM)</span>
             </button>
             <button class="nav-link" data-target-tab="profile">
               <span class="nav-icon">👤</span>
-              <span>Profil i Język</span>
+              <span data-i18n="tabProfile">Profil i Język</span>
             </button>
             <button class="nav-link" data-target-tab="personality">
               <span class="nav-icon">🎭</span>
-              <span>Osobowość</span>
+              <span data-i18n="tabPersonality">Osobowość</span>
             </button>
             <button class="nav-link" data-target-tab="memory">
               <span class="nav-icon">🧠</span>
-              <span>Pamięć</span>
+              <span data-i18n="tabMemory">Pamięć</span>
             </button>
             <button class="nav-link" data-target-tab="workflow">
               <span class="nav-icon">🔄</span>
-              <span>Workflow</span>
+              <span data-i18n="tabWorkflow">Workflow</span>
             </button>
             <button class="nav-link" data-target-tab="system">
               <span class="nav-icon">📊</span>
-              <span>Status & Info</span>
+              <span data-i18n="tabSystem">Status & Info</span>
             </button>
           </nav>
         </div>
@@ -315,6 +334,7 @@ function buildPanelHTML(): string {
       <!-- Right side: Content Area -->
       <div class="sidebar-content">
         <div class="settings-header">
+          <button class="settings-btn back-btn" id="btn-settings-back" data-i18n="back">← Wstecz</button>
           <h2 id="settings-title">Settings</h2>
           <button class="settings-close" id="settings-close">&times;</button>
         </div>
@@ -1069,6 +1089,12 @@ function wireEvents() {
   document.getElementById("settings-close")?.addEventListener("click", closeSettings);
   document.getElementById("settings-backdrop")?.addEventListener("click", closeSettings);
 
+  // Back button event handler
+  document.getElementById("btn-settings-back")?.addEventListener("click", () => {
+    panelEl?.classList.remove("show-content");
+    document.querySelectorAll(".nav-link").forEach((link) => link.classList.remove("active"));
+  });
+
   // Tab navigation click handlers
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.addEventListener("click", (e) => {
@@ -1391,7 +1417,15 @@ export async function openSettings() {
   if (status && !status.env_keys_set.anthropic) {
     enterSetupMode();
   } else {
-    // Normal mode: show default tab (onboarding/keys) and make sure sidebar-nav is visible
+    // Normal mode: show main menu of options
+    panelEl?.classList.remove("show-content");
+    document.querySelectorAll(".nav-link").forEach((link) => link.classList.remove("active"));
+    
+    const titleEl = document.getElementById("settings-title");
+    if (titleEl) {
+      titleEl.textContent = currentLanguage === "pl" ? "Ustawienia i Funkcje" : "Settings & Features";
+    }
+
     const navBar = document.querySelector(".sidebar-nav") as HTMLElement | null;
     if (navBar) navBar.style.display = "flex";
     
@@ -1401,8 +1435,6 @@ export async function openSettings() {
     
     const nav = document.getElementById("setup-nav");
     if (nav) nav.style.display = "none";
-
-    showTab("onboarding");
   }
 }
 

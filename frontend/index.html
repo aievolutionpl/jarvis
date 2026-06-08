@@ -9,54 +9,183 @@
   <body>
     <canvas id="orb-canvas"></canvas>
 
-    <a id="brand-link" href="https://aievolutionlabs.io/" target="_blank" rel="noreferrer">AI Evolution Labs</a>
+    <!-- High-Fidelity Header Bar -->
+    <header id="jarvis-header">
+      <div id="header-left">
+        <div class="logo-circle">
+          <div class="logo-inner-orb"></div>
+        </div>
+        <div class="brand-text">
+          <a id="brand-link" href="https://aievolutionlabs.io/" target="_blank" rel="noreferrer">AI EVOLUTION LABS</a>
+          <div class="brand-sub">JARVIS ASSISTANT</div>
+        </div>
+      </div>
+
+      <div id="header-center">
+        <div class="header-jarvis-title">JARVIS</div>
+        <div id="status-indicator">
+          <span class="status-indicator-dot idle"></span>
+          <span id="status-indicator-label" data-i18n="activeListening">ACTIVE & LISTENING</span>
+        </div>
+      </div>
+
+      <div id="controls">
+        <button id="btn-mute" title="Mute/Unmute">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+          </svg>
+        </button>
+        <button id="btn-camera" title="Camera">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+        <button id="btn-settings-direct" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button id="btn-menu" title="Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
+        <button id="btn-avatar" class="avatar-btn" title="User Profile">
+          <div class="avatar-icon"></div>
+        </button>
+      </div>
+    </header>
 
     <div id="hud-shell" aria-label="JARVIS mission control">
       <section id="hud-left" class="hud-panel">
-        <div class="hud-kicker">MISSION CONTROL</div>
-        <div class="hud-title">Live Systems</div>
-        <div class="hud-metrics">
-          <div><span>LINK</span><strong id="metric-link">connecting</strong></div>
-          <div><span>UPTIME</span><strong id="metric-uptime">--</strong></div>
-          <div><span>LOAD</span><strong id="metric-load">--</strong></div>
-          <div><span>DISK</span><strong id="metric-disk">--</strong></div>
-          <div><span>SESSION COST</span><strong id="metric-cost">--</strong></div>
-          <div><span>TOKENS</span><strong id="metric-tokens">--</strong></div>
+        <div class="hud-kicker" data-i18n="missionControl">MISSION CONTROL</div>
+        <div class="hud-title-row">
+          <div class="hud-title" data-i18n="liveSystems">Live Systems</div>
+          <span class="status-badge online" data-i18n="statusOnline">ONLINE</span>
         </div>
+        
+        <div class="hud-metrics">
+          <div class="metric-card">
+            <span data-i18n="metricUptime">UPTIME</span>
+            <strong id="metric-uptime">--</strong>
+            <small class="metric-subtext">99.9% Uptime</small>
+          </div>
+          <div class="metric-card status-card-live">
+            <span data-i18n="metricLink">LINK</span>
+            <strong id="metric-link" class="status-operational">connecting</strong>
+            <div class="heartbeat-pulse">
+              <svg viewBox="0 0 100 30" class="pulse-svg"><path d="M0 15 h20 l5 -8 l5 18 l5 -12 l3 -5 l3 7 h40" fill="none" stroke="#00d4ff" stroke-width="1.5"/></svg>
+            </div>
+          </div>
+          <div class="metric-card">
+            <span data-i18n="metricLoad">SYSTEM LOAD</span>
+            <strong id="metric-load">--</strong>
+            <div class="metric-progress-bar"><div id="load-progress" class="progress-fill" style="width: 0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <span data-i18n="metricDisk">DISK SPACE</span>
+            <strong id="metric-disk">--</strong>
+            <div class="metric-progress-bar"><div id="disk-progress" class="progress-fill" style="width: 0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <span data-i18n="metricCost">SESSION COST</span>
+            <strong id="metric-cost">--</strong>
+            <small class="metric-subtext" data-i18n="today">Today</small>
+          </div>
+          <div class="metric-card">
+            <span data-i18n="metricTokens">TOKENS</span>
+            <strong id="metric-tokens">--</strong>
+            <small class="metric-subtext" data-i18n="used">Used</small>
+          </div>
+        </div>
+
         <div id="drop-zone">
-          <span>DROP FILES</span>
-          <small>Text, code, JSON, Markdown and CSV become instant context.</small>
+          <span data-i18n="dropFiles">DROP FILES HERE</span>
+          <small data-i18n="dropFilesNote">Text, code, JSON, Markdown and CSV become instant context.</small>
         </div>
         <div class="mini-panel-header">
-          <span>ARTIFACTS</span>
-          <button id="btn-artifacts-refresh" title="Refresh artifacts">Refresh</button>
+          <span data-i18n="artifacts">ARTIFACTS</span>
+          <button id="btn-artifacts-refresh" title="Refresh artifacts" data-i18n="refresh">Refresh</button>
         </div>
         <div id="artifact-list" class="mini-list"></div>
       </section>
 
       <section id="hud-right" class="hud-panel">
-        <div class="hud-kicker">COMMAND DECK</div>
-        <div class="hud-title">Rapid Actions</div>
+        <div class="hud-kicker" data-i18n="commandDeck">COMMAND DECK</div>
+        <div class="hud-title" data-i18n="rapidActions">Rapid Actions</div>
         <div id="quick-actions">
-          <button data-command="Look at my screen and summarize what matters.">Scan Screen</button>
-          <button data-command="Summarize today's calendar and unread email priorities.">Daily Brief</button>
-          <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
-          <button data-command="Draft a client follow-up email based on my notes.">Draft Email</button>
-          <button data-command="Research this market and prepare a sourced brief.">Research Brief</button>
-          <button data-command="Create an invoice draft for a new client.">Invoice Draft</button>
-          <button data-command="Review the current JARVIS project and suggest one improvement.">Self Review</button>
+          <button data-command="Look at my screen and summarize what matters.">
+            <span class="action-icon">📷</span>
+            <div class="action-text">
+              <strong data-i18n="actionScanScreen">Scan Screen</strong>
+              <small data-i18n="actionScanScreenSub">Capture & analyze</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Summarize today's calendar and unread email priorities.">
+            <span class="action-icon">📅</span>
+            <div class="action-text">
+              <strong data-i18n="actionDailyBrief">Daily Brief</strong>
+              <small data-i18n="actionDailyBriefSub">Summarize today</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Show my open tasks and suggest what to do next.">
+            <span class="action-icon">🎯</span>
+            <div class="action-text">
+              <strong data-i18n="actionTaskFocus">Task Focus</strong>
+              <small data-i18n="actionTaskFocusSub">Define & execute</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Draft a client follow-up email based on my notes.">
+            <span class="action-icon">✉️</span>
+            <div class="action-text">
+              <strong data-i18n="actionDraftEmail">Draft Email</strong>
+              <small data-i18n="actionDraftEmailSub">Compose message</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Research this market and prepare a sourced brief.">
+            <span class="action-icon">🔍</span>
+            <div class="action-text">
+              <strong data-i18n="actionResearchBrief">Research Brief</strong>
+              <small data-i18n="actionResearchBriefSub">Deep dive research</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Create an invoice draft for a new client.">
+            <span class="action-icon">📄</span>
+            <div class="action-text">
+              <strong data-i18n="actionInvoiceDraft">Invoice Draft</strong>
+              <small data-i18n="actionInvoiceDraftSub">Create invoice</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
+          <button data-command="Review the current JARVIS project and suggest one improvement.">
+            <span class="action-icon">🛡️</span>
+            <div class="action-text">
+              <strong data-i18n="actionSelfReview">Self Review</strong>
+              <small data-i18n="actionSelfReviewSub">Analyze performance</small>
+            </div>
+            <span class="action-chevron">›</span>
+          </button>
         </div>
         <div id="event-log-header">
-          <span>ACTIVITY LOG</span>
+          <span data-i18n="activityLog">ACTIVITY LOG</span>
           <div class="log-actions">
-            <button id="btn-log-copy" title="Copy log to clipboard">Copy</button>
-            <button id="btn-log-clear" title="Clear log">Clear</button>
+            <button id="btn-log-copy" title="Copy log to clipboard" data-i18n="export">Export</button>
+            <button id="btn-log-clear" title="Clear log" data-i18n="clear">Clear</button>
           </div>
         </div>
         <div id="event-log" aria-live="polite"></div>
         <div class="mini-panel-header">
-          <span>ACTION GUARD</span>
-          <button id="btn-action-refresh" title="Refresh pending actions">Refresh</button>
+          <span data-i18n="actionGuard">ACTION GUARD</span>
+          <button id="btn-action-refresh" title="Action settings" data-i18n="settings">Settings</button>
         </div>
         <div id="pending-actions" class="mini-list"></div>
       </section>
@@ -74,6 +203,7 @@
         id="command-input"
         type="text"
         placeholder="Type a command, or press / to focus…"
+        data-i18n-placeholder="commandPlaceholder"
         aria-label="Type a command to JARVIS"
         maxlength="2000"
       />
@@ -85,58 +215,67 @@
       </button>
     </form>
 
+    <!-- Suggestion Chips -->
+    <div id="command-suggestions">
+      <button class="suggestion-chip" data-command="Look at my screen and summarize what matters.">/scan</button>
+      <button class="suggestion-chip" data-command="Summarize today's calendar and unread email priorities.">/brief</button>
+      <button class="suggestion-chip" data-command="Draft a client follow-up email based on my notes.">/email</button>
+      <button class="suggestion-chip" data-command="Research this market and prepare a sourced brief.">/research</button>
+      <button class="suggestion-chip" id="btn-suggestions-more">...</button>
+    </div>
+
     <!-- Toast notifications -->
     <div id="toast-stack" aria-live="polite"></div>
 
     <!-- Keyboard shortcuts overlay -->
     <div id="shortcuts-overlay" style="display:none">
       <div class="shortcuts-card">
-        <h2>Keyboard Shortcuts</h2>
+        <h2 data-i18n="shortcutsTitle">Keyboard Shortcuts</h2>
         <ul>
-          <li><kbd>/</kbd><span>Focus command bar</span></li>
-          <li><kbd>M</kbd><span>Mute / unmute microphone</span></li>
-          <li><kbd>Esc</kbd><span>Stop speaking · close panels</span></li>
-          <li><kbd>L</kbd><span>Clear activity log</span></li>
-          <li><kbd>,</kbd><span>Open settings</span></li>
-          <li><kbd>?</kbd><span>Toggle this help</span></li>
+          <li><kbd>/</kbd><span data-i18n="shortcutFocus">Focus command bar</span></li>
+          <li><kbd>M</kbd><span data-i18n="shortcutMute">Mute / unmute microphone</span></li>
+          <li><kbd>Esc</kbd><span data-i18n="shortcutStop">Stop speaking · close panels</span></li>
+          <li><kbd>L</kbd><span data-i18n="shortcutClear">Clear activity log</span></li>
+          <li><kbd>,</kbd><span data-i18n="shortcutSettings">Open settings</span></li>
+          <li><kbd>?</kbd><span data-i18n="shortcutToggle">Toggle this help</span></li>
         </ul>
-        <small>Press <kbd>?</kbd> or <kbd>Esc</kbd> to close</small>
+        <small><span data-i18n="shortcutClose">Press ? or Esc to close</span></small>
       </div>
-    </div>
-
-    <!-- Minimal controls — top right -->
-    <div id="controls">
-      <button id="btn-mute" title="Mute/Unmute">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-        </svg>
-      </button>
-      <button id="btn-help" title="Keyboard shortcuts (?)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      </button>
-      <button id="btn-menu" title="Menu">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
-        </svg>
-      </button>
     </div>
 
     <!-- Dropdown menu -->
     <div id="menu-dropdown" style="display:none">
-      <button id="btn-settings">Settings</button>
-      <button id="btn-restart">Restart Server</button>
-      <button id="btn-fix-self">Fix Yourself</button>
+      <button id="btn-shortcuts-dropdown" data-i18n="shortcutsTitle">Keyboard Shortcuts</button>
+      <button id="btn-restart" data-i18n="restartServer">Restart Server</button>
+      <button id="btn-fix-self" data-i18n="fixYourself">Fix Yourself</button>
     </div>
 
     <div id="status-text"></div>
     <div id="jarvis-label">JARVIS</div>
     <div id="error-text"></div>
+
+    <!-- Futuristic Footer -->
+    <footer id="jarvis-footer">
+      <div class="footer-item">
+        <svg class="secure-icon" width="10" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span data-i18n="footerSecure">SECURE CONNECTION &middot; SSL ENCRYPTED</span>
+      </div>
+      <div class="footer-item">
+        <span class="footer-label" data-i18n="footerLocation">LOCATION</span>
+        <strong id="footer-location-val">EU-WEST-1</strong>
+      </div>
+      <div class="footer-item">
+        <span class="footer-label" data-i18n="footerModel">MODEL</span>
+        <strong id="footer-model-val">CLAUDE 3.5 SONNET</strong>
+      </div>
+      <div class="footer-item">
+        <strong data-i18n="footerBrand">JARVIS v2.0 &middot; BUILT FOR EXCELLENCE</strong>
+      </div>
+    </footer>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

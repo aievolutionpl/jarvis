@@ -8,8 +8,17 @@
 import { createOrb, type OrbState } from "./orb";
 import { createVoiceInput, createAudioPlayer } from "./voice";
 import { createSocket } from "./ws";
-import { openSettings, checkFirstTimeSetup } from "./settings";
+import { openSettings, checkFirstTimeSetup, applyLanguage } from "./settings";
 import "./style.css";
+
+// Apply UI language on startup
+applyLanguage();
+
+function updateLogPlaceholder() {
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+  eventLog.setAttribute("data-empty-text", isPl ? "Brak aktywności." : "No activity yet.");
+}
+updateLogPlaceholder();
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -58,15 +67,34 @@ function formatDuration(seconds: number) {
 }
 
 async function refreshSystemMetrics() {
-  metricLink.textContent = socket.isConnected() ? "online" : "offline";
-  metricLink.classList.toggle("offline", !socket.isConnected());
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+  const onlineText = isPl ? "aktywny" : "online";
+  const offlineText = isPl ? "offline" : "offline";
+  metricLink.textContent = socket.isConnected() ? onlineText : offlineText;
+  metricLink.className = socket.isConnected() ? "status-operational" : "offline";
   try {
     const res = await fetch("/api/system");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     metricUptime.textContent = formatDuration(Number(data.uptime_seconds));
-    metricLoad.textContent = typeof data.load_average === "number" ? data.load_average.toFixed(2) : "--";
-    metricDisk.textContent = typeof data.disk_free_gb === "number" ? `${data.disk_free_gb.toFixed(1)} GB` : "--";
+    
+    const loadVal = typeof data.load_average === "number" ? data.load_average : 0;
+    const loadPercent = Math.min(100, Math.round((loadVal / 4) * 100));
+    metricLoad.textContent = `${loadPercent}%`;
+    const loadProgress = document.getElementById("load-progress");
+    if (loadProgress) loadProgress.style.width = `${loadPercent}%`;
+
+    if (typeof data.disk_free_gb === "number" && typeof data.disk_total_gb === "number") {
+      const free = data.disk_free_gb;
+      const total = data.disk_total_gb;
+      const used = total - free;
+      const diskPercent = Math.min(100, Math.round((used / total) * 100));
+      metricDisk.textContent = `${used.toFixed(0)} GB / ${total.toFixed(0)} GB`;
+      const diskProgress = document.getElementById("disk-progress");
+      if (diskProgress) diskProgress.style.width = `${diskPercent}%`;
+    } else {
+      metricDisk.textContent = "--";
+    }
   } catch {
     metricUptime.textContent = "--";
     metricLoad.textContent = "--";
@@ -130,25 +158,37 @@ function showError(msg: string) {
 }
 
 function updateStatus(state: State) {
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
   const labels: Record<State, string> = {
-    idle: "",
-    listening: "listening...",
-    thinking: "thinking...",
-    speaking: "",
+    idle: isPl ? "czuwanie" : "standby",
+    listening: isPl ? "aktywny & słucha" : "active & listening",
+    thinking: isPl ? "myślę..." : "thinking...",
+    speaking: isPl ? "mówię..." : "speaking...",
   };
-  statusEl.textContent = labels[state];
+  
+  const statusLabel = document.getElementById("status-indicator-label");
+  if (statusLabel) {
+    statusLabel.textContent = labels[state].toUpperCase();
+  }
+  const statusDot = document.querySelector(".status-indicator-dot");
+  if (statusDot) {
+    statusDot.className = `status-indicator-dot ${state}`;
+  }
+
+  statusEl.textContent = isPl ? (state === "listening" ? "słucham..." : state === "thinking" ? "myślę..." : "") : (state === "listening" ? "listening..." : state === "thinking" ? "thinking..." : "");
   updateStatePill(state);
 }
 
 function updateStatePill(state: State) {
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
   const pillLabels: Record<State, string> = {
-    idle: "standby",
-    listening: "listening",
-    thinking: "thinking",
-    speaking: "speaking",
+    idle: isPl ? "czuwanie" : "standby",
+    listening: isPl ? "słucham" : "listening",
+    thinking: isPl ? "myślę" : "thinking",
+    speaking: isPl ? "mówię" : "speaking",
   };
   statePill.className = isMuted ? "state-idle muted" : `state-${state}`;
-  statePillLabel.textContent = isMuted ? "muted" : pillLabels[state];
+  statePillLabel.textContent = isMuted ? (isPl ? "wyciszony" : "muted") : pillLabels[state];
 }
 
 // ---------------------------------------------------------------------------
@@ -267,14 +307,18 @@ socket.onMessage((msg) => {
     if (msg.text) addLog(String(msg.text), "jarvis");
   } else if (type === "task_spawned") {
     console.log("[task]", "spawned:", msg.task_id, msg.prompt);
-    addLog(`Task spawned: ${msg.task_id}`, "system");
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    addLog(isPl ? `Uruchomiono zadanie: ${msg.task_id}` : `Task spawned: ${msg.task_id}`, "system");
   } else if (type === "task_complete") {
     console.log("[task]", "complete:", msg.task_id, msg.status, msg.summary);
-    addLog(`Task complete: ${msg.summary || msg.status}`, "system");
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    addLog(isPl ? `Zadanie zakończone: ${msg.summary || msg.status}` : `Task complete: ${msg.summary || msg.status}`, "system");
   } else if (type === "action_pending") {
     const action = msg.action as { id?: number; title?: string; risk?: string };
-    addLog(`Confirmation needed: ${action.title || "external action"}`, "system");
-    showToast(`Confirmation needed: ${action.title || "external action"}`, "info", 7000);
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    const textMsg = isPl ? `Wymagane zatwierdzenie: ${action.title || "zewnętrzna akcja"}` : `Confirmation needed: ${action.title || "external action"}`;
+    addLog(textMsg, "system");
+    showToast(textMsg, "info", 7000);
     refreshPendingActions();
   }
 });
@@ -325,7 +369,8 @@ btnMute.addEventListener("click", (e) => {
     transition("listening");
   }
   updateStatePill(currentState);
-  showToast(isMuted ? "Microphone muted" : "Microphone live", isMuted ? "info" : "success", 2000);
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+  showToast(isMuted ? (isPl ? "Mikrofon wyciszony" : "Microphone muted") : (isPl ? "Mikrofon włączony" : "Microphone live"), isMuted ? "info" : "success", 2000);
 });
 
 btnMenu.addEventListener("click", (e) => {
@@ -340,13 +385,14 @@ document.addEventListener("click", () => {
 btnRestart.addEventListener("click", async (e) => {
   e.stopPropagation();
   menuDropdown.style.display = "none";
-  statusEl.textContent = "restarting...";
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+  statusEl.textContent = isPl ? "restartowanie..." : "restarting...";
   try {
     await fetch("/api/restart", { method: "POST" });
     // Wait a few seconds then reload
     setTimeout(() => window.location.reload(), 4000);
   } catch {
-    statusEl.textContent = "restart failed";
+    statusEl.textContent = isPl ? "restart nieudany" : "restart failed";
   }
 });
 
@@ -355,15 +401,23 @@ btnFixSelf.addEventListener("click", (e) => {
   menuDropdown.style.display = "none";
   // Activate work mode on the WebSocket session (JARVIS becomes Claude Code's voice)
   socket.send({ type: "fix_self" });
-  statusEl.textContent = "entering work mode...";
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+  statusEl.textContent = isPl ? "wchodzenie w tryb pracy..." : "entering work mode...";
 });
 
-// Settings button
-const btnSettings = document.getElementById("btn-settings")!;
-btnSettings.addEventListener("click", (e) => {
+// Settings button (direct)
+const btnSettingsDirect = document.getElementById("btn-settings-direct")!;
+btnSettingsDirect.addEventListener("click", (e) => {
+  e.stopPropagation();
+  openSettings();
+});
+
+// Shortcuts dropdown button
+const btnShortcutsDropdown = document.getElementById("btn-shortcuts-dropdown")!;
+btnShortcutsDropdown.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.style.display = "none";
-  openSettings();
+  toggleShortcuts(true);
 });
 
 // First-time setup detection — check after a short delay for server readiness
@@ -384,9 +438,10 @@ quickActions.addEventListener("click", (event) => {
 
 async function uploadFile(file: File) {
   const maxBytes = 512 * 1024;
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
   if (file.size > maxBytes) {
-    showError(`${file.name} is too large for quick intake (512 KB limit).`);
-    addLog(`Rejected ${file.name}: larger than 512 KB`, "system");
+    showError(isPl ? `${file.name} jest za duży do szybkiego wczytania (limit 512 KB).` : `${file.name} is too large for quick intake (512 KB limit).`);
+    addLog(isPl ? `Odrzucono ${file.name}: plik większy niż 512 KB` : `Rejected ${file.name}: larger than 512 KB`, "system");
     return;
   }
 
@@ -398,12 +453,14 @@ async function uploadFile(file: File) {
   });
   const data = await res.json();
   if (!res.ok) {
-    showError(data.error || `Could not ingest ${file.name}.`);
+    showError(data.error || (isPl ? `Nie można wczytać ${file.name}.` : `Could not ingest ${file.name}.`));
     return;
   }
-  const prompt = `I uploaded ${data.name}. Summarize it, identify risks or useful next actions, and remember the important context.`;
-  addLog(`File ingested: ${data.name}`, "system");
-  showToast(`Ingested ${data.name}`, "success");
+  const prompt = isPl 
+    ? `Przesłałem plik ${data.name}. Podsumuj go, zidentyfikuj ryzyka lub przydatne kolejne kroki i zapamiętaj ten ważny kontekst.` 
+    : `I uploaded ${data.name}. Summarize it, identify risks or useful next actions, and remember the important context.`;
+  addLog(isPl ? `Wczytano plik: ${data.name}` : `File ingested: ${data.name}`, "system");
+  showToast(isPl ? `Wczytano ${data.name}` : `Ingested ${data.name}`, "success");
   sendCommand(prompt, "file");
 }
 
@@ -428,7 +485,8 @@ dropZone.addEventListener("drop", async (event) => {
   }
 });
 
-addLog("Mission control online.", "system");
+const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+addLog(isPl ? "Centrum sterowania aktywne." : "Mission control online.", "system");
 refreshSystemMetrics();
 refreshUsage();
 refreshArtifacts();
@@ -459,18 +517,20 @@ async function refreshArtifacts() {
     const res = await fetch("/api/artifacts");
     const data = await res.json();
     const artifacts = (data.artifacts || []) as Array<{ name: string; size: number; modified_at: number; download_url: string }>;
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
     if (artifacts.length === 0) {
-      artifactList.innerHTML = `<div class="mini-row"><strong>No artifacts yet</strong><small>Executable skills will appear here.</small></div>`;
+      artifactList.innerHTML = `<div class="mini-row"><strong>${isPl ? "Brak artefaktów" : "No artifacts yet"}</strong><small>${isPl ? "Uruchamiane umiejętności pojawią się tutaj." : "Executable skills will appear here."}</small></div>`;
       return;
     }
     artifactList.innerHTML = artifacts.slice(0, 5).map((a) => `
       <div class="mini-row">
         <strong>${escapeHtml(a.name)}</strong>
         <small>${formatBytes(Number(a.size))} · ${new Date(Number(a.modified_at) * 1000).toLocaleString()}</small>
-        <div class="mini-actions"><button data-open-artifact="${escapeHtml(a.download_url)}">Open</button><button data-copy-artifact="${escapeHtml(a.name)}">Copy name</button></div>
+        <div class="mini-actions"><button data-open-artifact="${escapeHtml(a.download_url)}">${isPl ? "Otwórz" : "Open"}</button><button data-copy-artifact="${escapeHtml(a.name)}">${isPl ? "Kopiuj" : "Copy name"}</button></div>
       </div>`).join("");
   } catch {
-    artifactList.innerHTML = `<div class="mini-row"><strong>Artifacts unavailable</strong></div>`;
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    artifactList.innerHTML = `<div class="mini-row"><strong>${isPl ? "Artefakty niedostępne" : "Artifacts unavailable"}</strong></div>`;
   }
 }
 
@@ -479,23 +539,41 @@ async function refreshPendingActions() {
     const res = await fetch("/api/action-log?status=pending_confirmation&limit=10");
     const data = await res.json();
     const actions = (data.actions || []) as Array<{ id: number; title: string; risk: string; created_at: number }>;
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
     if (actions.length === 0) {
-      pendingActions.innerHTML = `<div class="mini-row"><strong>No pending actions</strong><small>Outbound tool calls pause here before execution.</small></div>`;
+      pendingActions.innerHTML = `<div class="mini-row"><strong>${isPl ? "Brak oczekujących akcji" : "No pending actions"}</strong><small>${isPl ? "Wychodzące wywołania narzędzi zatrzymają się tutaj przed wykonaniem." : "Outbound tool calls pause here before execution."}</small></div>`;
       return;
     }
     pendingActions.innerHTML = actions.map((a) => `
       <div class="mini-row">
         <strong>${escapeHtml(a.title)}</strong>
-        <small>${escapeHtml(a.risk.toUpperCase())} risk · ${new Date(Number(a.created_at) * 1000).toLocaleTimeString()}</small>
-        <div class="mini-actions"><button class="danger" data-confirm-action="${a.id}">Confirm</button><button data-cancel-action="${a.id}">Cancel</button></div>
+        <small>${escapeHtml(a.risk.toUpperCase())} ${isPl ? "ryzyko" : "risk"} · ${new Date(Number(a.created_at) * 1000).toLocaleTimeString()}</small>
+        <div class="mini-actions"><button class="danger" data-confirm-action="${a.id}">${isPl ? "Zatwierdź" : "Confirm"}</button><button data-cancel-action="${a.id}">${isPl ? "Anuluj" : "Cancel"}</button></div>
       </div>`).join("");
   } catch {
-    pendingActions.innerHTML = `<div class="mini-row"><strong>Action guard unavailable</strong></div>`;
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    pendingActions.innerHTML = `<div class="mini-row"><strong>${isPl ? "Strażnik akcji niedostępny" : "Action guard unavailable"}</strong></div>`;
   }
 }
 
 document.getElementById("btn-artifacts-refresh")?.addEventListener("click", refreshArtifacts);
-document.getElementById("btn-action-refresh")?.addEventListener("click", refreshPendingActions);
+document.getElementById("btn-action-refresh")?.addEventListener("click", () => {
+  openSettings();
+  setTimeout(() => {
+    const link = document.querySelector(".nav-link[data-target-tab='workflow']") as HTMLElement;
+    if (link) link.click();
+  }, 100);
+});
+
+document.getElementById("command-suggestions")?.addEventListener("click", (event) => {
+  const chip = (event.target as HTMLElement).closest<HTMLButtonElement>("button.suggestion-chip");
+  if (!chip) return;
+  if (chip.id === "btn-suggestions-more") {
+    openSettings();
+    return;
+  }
+  sendCommand(chip.dataset.command || chip.textContent || "", "quick");
+});
 
 artifactList.addEventListener("click", async (event) => {
   const target = event.target as HTMLElement;
@@ -504,7 +582,8 @@ artifactList.addEventListener("click", async (event) => {
   if (open) window.open(open.dataset.openArtifact, "_blank");
   if (copy) {
     await navigator.clipboard.writeText(copy.dataset.copyArtifact || "");
-    showToast("Artifact name copied", "success");
+    const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
+    showToast(isPl ? "Skopiowano nazwę artefaktu" : "Artifact name copied", "success");
   }
 });
 
@@ -516,11 +595,12 @@ pendingActions.addEventListener("click", async (event) => {
   if (!id) return;
   const path = confirmBtn ? `/api/action-log/${id}/confirm` : `/api/action-log/${id}/cancel`;
   const res = await fetch(path, { method: "POST" });
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
   if (!res.ok) {
-    showToast(confirmBtn ? "Confirmation failed" : "Cancel failed", "error");
+    showToast(confirmBtn ? (isPl ? "Zatwierdzenie nieudane" : "Confirmation failed") : (isPl ? "Anulowanie nieudane" : "Cancel failed"), "error");
     return;
   }
-  showToast(confirmBtn ? "Action confirmed" : "Action cancelled", confirmBtn ? "success" : "info");
+  showToast(confirmBtn ? (isPl ? "Zatwierdzono akcję" : "Action confirmed") : (isPl ? "Anulowano akcję" : "Action cancelled"), confirmBtn ? "success" : "info");
   refreshPendingActions();
 });
 
@@ -559,8 +639,9 @@ btnLogClear.addEventListener("click", (e) => {
 btnLogCopy.addEventListener("click", async (e) => {
   e.stopPropagation();
   const rows = Array.from(eventLog.querySelectorAll<HTMLElement>(".log-row")).reverse();
+  const isPl = (localStorage.getItem("jarvis.uiLanguage") || "en") === "pl";
   if (rows.length === 0) {
-    showToast("Activity log is empty", "info");
+    showToast(isPl ? "Rejestr aktywności jest pusty" : "Activity log is empty", "info");
     return;
   }
   const text = rows
@@ -572,9 +653,9 @@ btnLogCopy.addEventListener("click", async (e) => {
     .join("\n");
   try {
     await navigator.clipboard.writeText(text);
-    showToast("Activity log copied", "success");
+    showToast(isPl ? "Skopiowano rejestr aktywności" : "Activity log copied", "success");
   } catch {
-    showToast("Clipboard unavailable", "error");
+    showToast(isPl ? "Schowek niedostępny" : "Clipboard unavailable", "error");
   }
 });
 
@@ -583,17 +664,19 @@ btnLogCopy.addEventListener("click", async (e) => {
 // ---------------------------------------------------------------------------
 
 const shortcutsOverlay = document.getElementById("shortcuts-overlay")!;
-const btnHelp = document.getElementById("btn-help")!;
+const btnHelp = document.getElementById("btn-help");
 
 function toggleShortcuts(force?: boolean) {
   const show = force ?? shortcutsOverlay.style.display === "none";
   shortcutsOverlay.style.display = show ? "flex" : "none";
 }
 
-btnHelp.addEventListener("click", (e) => {
-  e.stopPropagation();
-  toggleShortcuts();
-});
+if (btnHelp) {
+  btnHelp.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleShortcuts();
+  });
+}
 
 shortcutsOverlay.addEventListener("click", () => toggleShortcuts(false));
 
