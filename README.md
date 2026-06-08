@@ -1,6 +1,10 @@
 # JARVIS — Virtual AI Assistant by AI Evolution Labs
 
 <p align="center">
+  <img alt="JARVIS — premium voice assistant hero" src="jarvis-premium-clear-voice-assistant.svg" width="100%" />
+</p>
+
+<p align="center">
   <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK onboarding, memory, skills, and developer automation.</strong>
 </p>
 
@@ -224,7 +228,7 @@ cd frontend && npm run build
 - Cross-provider tool-use parity so non-Claude brains can drive `[ACTION:X]` reliably.
 - Downloadable skill marketplace with task-triggered installation.
 - Windows-native desktop integrations to complement the macOS AppleScript bridge.
-- Screenshot/demo media for the GitHub README.
+- ~~Hero artwork for the GitHub README.~~ ✅ Shipped — additional in-app screenshots/demo clips still planned.
 
 ---
 
