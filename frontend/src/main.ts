@@ -97,9 +97,14 @@ async function refreshUsage() {
   }
 }
 
+// Monotonic id stamped on every outgoing command. The server echoes it back as
+// `reqId`, so a reply for a superseded command (the user barged in) is discarded.
+let commandSeq = 0;
+
 function sendCommand(text: string, source: "voice" | "quick" | "file" | "text" = "quick") {
   audioPlayer.stop();
-  socket.send({ type: "transcript", text, isFinal: true, source });
+  commandSeq += 1;
+  socket.send({ type: "transcript", text, isFinal: true, source, id: commandSeq });
   addLog(text, source === "file" ? "system" : "user");
   transition("thinking");
 }
@@ -160,22 +165,31 @@ const socket = createSocket(WS_URL);
 const audioPlayer = createAudioPlayer();
 orb.setAnalyser(audioPlayer.getAnalyser());
 
+let micResumeTimer: number | undefined;
+
 function transition(newState: State) {
   if (newState === currentState) return;
+  const prevState = currentState;
   currentState = newState;
   orb.setState(newState as OrbState);
   updateStatus(newState);
 
+  if (micResumeTimer !== undefined) {
+    clearTimeout(micResumeTimer);
+    micResumeTimer = undefined;
+  }
+
   switch (newState) {
     case "idle":
-      if (!isMuted) voiceInput.resume();
-      break;
     case "listening":
-      if (!isMuted) voiceInput.resume();
+      if (!isMuted) {
+        // Brief debounce when JARVIS just finished speaking so the audio tail
+        // isn't picked back up by the mic as a phantom transcript.
+        const delay = prevState === "speaking" ? 300 : 0;
+        micResumeTimer = window.setTimeout(() => voiceInput.resume(), delay);
+      }
       break;
     case "thinking":
-      voiceInput.pause();
-      break;
     case "speaking":
       voiceInput.pause();
       break;
@@ -210,6 +224,13 @@ audioPlayer.onFinished(() => {
 
 socket.onMessage((msg) => {
   const type = msg.type as string;
+
+  // Drop replies for a command the user has already superseded (barge-in).
+  const reqId = msg.reqId as number | undefined;
+  if (reqId !== undefined && reqId !== commandSeq) {
+    console.log("[ws] dropping stale reply", reqId, "current", commandSeq);
+    return;
+  }
 
   if (type === "audio") {
     const audioData = msg.data as string;
