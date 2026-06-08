@@ -1210,6 +1210,8 @@ async def generate_response(
         user_name=USER_NAME,
         project_dir=PROJECT_DIR,
     )
+    system += f"\n\n{_personalization_prompt()}"
+
     if lookup_status:
         system += f"\n\nACTIVE LOOKUPS:\n{lookup_status}\nIf asked about progress, report this status."
 
@@ -2703,6 +2705,49 @@ class PreferencesUpdate(BaseModel):
     user_name: str = ""
     honorific: str = "sir"
     calendar_accounts: str = "auto"
+    interface_language: str = "en"
+    response_language: str = "en"
+    personality_preset: str = "stark"
+    personality_brief: str = ""
+    humor_level: str = "balanced"
+    formality_level: str = "butler"
+    proactive_mode: str = "smart"
+
+
+def _personalization_prompt() -> str:
+    """Runtime personality controls saved from Settings → Personalization."""
+    _, env = _read_env()
+    language_names = {
+        "en": "English",
+        "pl": "Polish",
+        "es": "Spanish",
+        "de": "German",
+        "fr": "French",
+        "it": "Italian",
+        "pt": "Portuguese",
+        "uk": "Ukrainian",
+    }
+    preset = env.get("JARVIS_PERSONALITY_PRESET", "stark")
+    preset_lines = {
+        "stark": "Default: cinematic Stark-style JARVIS — polished British butler, loyal, calm, highly capable, with understated dry wit.",
+        "executive": "Executive operator — concise, strategic, numbers-first, ruthless about priorities.",
+        "coach": "Supportive coach — energetic, encouraging, habit-building, but still elegant.",
+        "engineer": "Senior engineer — precise, technical, skeptical of assumptions, prefers tests and evidence.",
+        "creative": "Creative director — visual, bold, idea-rich, brand-aware, and playful.",
+    }.get(preset, "Cinematic Stark-style JARVIS with elegant service and dry wit.")
+    response_language = env.get("JARVIS_RESPONSE_LANGUAGE", "en")
+    brief = env.get("JARVIS_PERSONALITY_BRIEF", "").strip()
+    lines = [
+        "RUNTIME PERSONALIZATION:",
+        f"- Speak to the user in {language_names.get(response_language, response_language)} unless the user explicitly asks for another language.",
+        f"- Personality preset: {preset_lines}",
+        f"- Humor level: {env.get('JARVIS_HUMOR_LEVEL', 'balanced')} — keep it dry, never clownish.",
+        f"- Formality level: {env.get('JARVIS_FORMALITY_LEVEL', 'butler')}.",
+        f"- Proactive mode: {env.get('JARVIS_PROACTIVE_MODE', 'smart')} — take reasonable initiative without being intrusive.",
+    ]
+    if brief:
+        lines.append(f"- Custom personality directive from the user: {brief[:1200]}")
+    return "\n".join(lines)
 
 def _rebuild_anthropic_client():
     """Recreate the Anthropic client from the current env so a freshly-saved key
@@ -2716,7 +2761,19 @@ def _rebuild_anthropic_client():
 async def api_settings_keys(body: KeyUpdate):
     allowed = (
         provider_env_keys()
-        | {"FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
+        | {
+            "FISH_VOICE_ID",
+            "USER_NAME",
+            "HONORIFIC",
+            "CALENDAR_ACCOUNTS",
+            "JARVIS_UI_LANGUAGE",
+            "JARVIS_RESPONSE_LANGUAGE",
+            "JARVIS_PERSONALITY_PRESET",
+            "JARVIS_PERSONALITY_BRIEF",
+            "JARVIS_HUMOR_LEVEL",
+            "JARVIS_FORMALITY_LEVEL",
+            "JARVIS_PROACTIVE_MODE",
+        }
         | provider_config.extra_env_keys()
     )
     if body.key_name not in allowed:
@@ -2822,6 +2879,8 @@ async def api_settings_status():
             "fish_audio": is_configured(env_dict.get("FISH_API_KEY", "")),
             "fish_voice_id": bool(env_dict.get("FISH_VOICE_ID", "").strip()),
             "user_name": env_dict.get("USER_NAME", ""),
+            "interface_language": env_dict.get("JARVIS_UI_LANGUAGE", "en"),
+            "response_language": env_dict.get("JARVIS_RESPONSE_LANGUAGE", "en"),
         },
         "providers": providers_for_status(env_dict),
         "llm": provider_config.llm_status(),
@@ -3063,6 +3122,13 @@ async def api_get_preferences():
         "user_name": env_dict.get("USER_NAME", ""),
         "honorific": env_dict.get("HONORIFIC", "sir"),
         "calendar_accounts": env_dict.get("CALENDAR_ACCOUNTS", "auto"),
+        "interface_language": env_dict.get("JARVIS_UI_LANGUAGE", "en"),
+        "response_language": env_dict.get("JARVIS_RESPONSE_LANGUAGE", "en"),
+        "personality_preset": env_dict.get("JARVIS_PERSONALITY_PRESET", "stark"),
+        "personality_brief": env_dict.get("JARVIS_PERSONALITY_BRIEF", ""),
+        "humor_level": env_dict.get("JARVIS_HUMOR_LEVEL", "balanced"),
+        "formality_level": env_dict.get("JARVIS_FORMALITY_LEVEL", "butler"),
+        "proactive_mode": env_dict.get("JARVIS_PROACTIVE_MODE", "smart"),
     }
 
 @app.post("/api/settings/preferences")
@@ -3070,6 +3136,15 @@ async def api_save_preferences(body: PreferencesUpdate):
     _write_env_key("USER_NAME", body.user_name)
     _write_env_key("HONORIFIC", body.honorific)
     _write_env_key("CALENDAR_ACCOUNTS", body.calendar_accounts)
+    _write_env_key("JARVIS_UI_LANGUAGE", body.interface_language)
+    _write_env_key("JARVIS_RESPONSE_LANGUAGE", body.response_language)
+    _write_env_key("JARVIS_PERSONALITY_PRESET", body.personality_preset)
+    _write_env_key("JARVIS_PERSONALITY_BRIEF", body.personality_brief)
+    _write_env_key("JARVIS_HUMOR_LEVEL", body.humor_level)
+    _write_env_key("JARVIS_FORMALITY_LEVEL", body.formality_level)
+    _write_env_key("JARVIS_PROACTIVE_MODE", body.proactive_mode)
+    if body.user_name:
+        _set_user_name(body.user_name)
     return {"success": True}
 
 # ---------------------------------------------------------------------------

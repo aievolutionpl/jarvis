@@ -999,7 +999,7 @@ html, body {
 
 .onboarding-steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
 
@@ -1333,7 +1333,7 @@ html, body {
   }
 
   .onboarding-steps {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 4px;
   }
 
@@ -1417,4 +1417,68 @@ html, body {
 .mini-actions .danger {
   border-color: rgba(255, 180, 80, 0.4);
   color: rgba(255, 220, 165, 0.95);
+}
+
+/* ---------------------------------------------------------------------------
+   Personalization Lab polish
+   --------------------------------------------------------------------------- */
+
+.personality-preview {
+  margin: 8px 0 14px;
+  padding: 14px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.16), transparent 36%),
+    linear-gradient(135deg, rgba(8, 18, 34, 0.78), rgba(3, 7, 18, 0.62));
+  box-shadow: inset 0 0 24px rgba(14, 165, 233, 0.04);
+}
+
+.personality-preview span {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(125, 211, 252, 0.58);
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.personality-preview strong {
+  display: block;
+  color: rgba(226, 242, 255, 0.88);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.split-actions {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.split-actions .settings-btn {
+  flex: 1;
+}
+
+#brand-link {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 20;
+  padding: 8px 11px;
+  border: 1px solid rgba(14, 165, 233, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 18, 34, 0.38);
+  color: rgba(125, 211, 252, 0.58);
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-decoration: none;
+  text-transform: uppercase;
+  backdrop-filter: blur(14px);
+}
+
+#brand-link:hover {
+  color: #7dd3fc;
+  border-color: rgba(34, 211, 238, 0.34);
+  box-shadow: 0 0 24px rgba(14, 165, 233, 0.12);
 }

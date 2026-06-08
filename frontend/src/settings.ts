@@ -105,6 +105,8 @@ interface StatusResponse {
     fish_audio: boolean;
     fish_voice_id: boolean;
     user_name: string;
+    interface_language: string;
+    response_language: string;
   };
   providers: ApiProvider[];
   llm?: LlmStatus;
@@ -119,6 +121,13 @@ interface PreferencesResponse {
   user_name: string;
   honorific: string;
   calendar_accounts: string;
+  interface_language: string;
+  response_language: string;
+  personality_preset: string;
+  personality_brief: string;
+  humor_level: string;
+  formality_level: string;
+  proactive_mode: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +137,37 @@ interface PreferencesResponse {
 let panelEl: HTMLElement | null = null;
 let isOpen = false;
 let isFirstTimeSetup = false;
-let setupStep = 0; // 0=anthropic, 1=fish, 2=name, 3=done
+let setupStep = 0; // 0=keys, 1=engine, 2=skills, 3=tools, 4=profile, 5=personality
+let currentLanguage = localStorage.getItem("jarvis.uiLanguage") || "en";
+
+const I18N: Record<string, Record<string, string>> = {
+  en: {
+    settings: "Settings", keys: "API Keys", engine: "Engine", skills: "Skills", tools: "Connected Tools", status: "Connection Status", prefs: "User Preferences", personality: "Personality Lab", system: "System Info", save: "Save Preferences", generate: "Generate JARVIS Personality", language: "Menu Language", voiceLanguage: "Response Language", name: "Your Name", honorific: "Honorific", calendar: "Calendar Accounts", preset: "Personality Preset", humor: "Humor", formality: "Formality", initiative: "Initiative", brief: "Custom Personality Brief", nextSkills: "Next: Skills", nextTools: "Next: Tools", nextProfile: "Next: Profile", nextPersonality: "Next: Personality", nextEngine: "Next: Engine", finish: "Launch JARVIS",
+  },
+  pl: {
+    settings: "Ustawienia", keys: "Klucze API", engine: "Silnik", skills: "Umiejętności", tools: "Narzędzia", status: "Status Połączeń", prefs: "Preferencje", personality: "Laboratorium Osobowości", system: "Informacje", save: "Zapisz Preferencje", generate: "Wygeneruj Osobowość JARVIS-a", language: "Język Menu", voiceLanguage: "Język Odpowiedzi", name: "Twoje Imię", honorific: "Zwrot", calendar: "Konta Kalendarza", preset: "Styl Osobowości", humor: "Humor", formality: "Formalność", initiative: "Inicjatywa", brief: "Własny Opis Osobowości", nextSkills: "Dalej: Umiejętności", nextTools: "Dalej: Narzędzia", nextProfile: "Dalej: Profil", nextPersonality: "Dalej: Osobowość", nextEngine: "Dalej: Silnik", finish: "Uruchom JARVIS-a",
+  },
+};
+
+function t(key: string): string {
+  return I18N[currentLanguage]?.[key] || I18N.en[key] || key;
+}
+
+// ---------------------------------------------------------------------------
+// Localization
+// ---------------------------------------------------------------------------
+
+function applyLanguage(lang?: string) {
+  currentLanguage = lang || currentLanguage || "en";
+  localStorage.setItem("jarvis.uiLanguage", currentLanguage);
+  document.documentElement.lang = currentLanguage;
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
+    const key = el.dataset.i18n || "";
+    el.textContent = t(key);
+  });
+  const ui = document.getElementById("input-ui-language") as HTMLSelectElement | null;
+  if (ui) ui.value = currentLanguage;
+}
 
 // ---------------------------------------------------------------------------
 // API helpers
@@ -157,7 +196,7 @@ function buildPanelHTML(): string {
     <div class="settings-backdrop" id="settings-backdrop"></div>
     <div class="settings-panel" id="settings-panel-inner">
       <div class="settings-header">
-        <h2>Settings</h2>
+        <h2 data-i18n="settings">Settings</h2>
         <button class="settings-close" id="settings-close">&times;</button>
       </div>
 
@@ -168,7 +207,7 @@ function buildPanelHTML(): string {
           <p>Configure the core brain, voice, research, and optional Hermes-compatible connectors without editing files by hand.</p>
         </div>
         <div class="onboarding-steps" id="onboarding-steps">
-          <span class="active">1 Keys</span><span>2 Skills</span><span>3 Tools</span><span>4 Profile</span><span>5 Launch</span>
+          <span class="active">1 Keys</span><span>2 Engine</span><span>3 Skills</span><span>4 Tools</span><span>5 Profile</span><span>6 Personality</span>
         </div>
       </div>
 
@@ -176,7 +215,7 @@ function buildPanelHTML(): string {
 
         <!-- API Keys -->
         <section class="settings-section" id="section-api-keys">
-          <h3>API Keys</h3>
+          <h3 data-i18n="keys">API Keys</h3>
 
           <div class="settings-field">
             <label>Anthropic API Key</label>
@@ -213,7 +252,7 @@ function buildPanelHTML(): string {
 
         <!-- Engine: active brain + voice -->
         <section class="settings-section" id="section-engine">
-          <h3>Engine</h3>
+          <h3 data-i18n="engine">Engine</h3>
           <p class="section-note">Choose which model thinks and which voice speaks. Claude is recommended for tool actions; other brains chat well but may be weaker at running tools.</p>
 
           <div class="settings-field">
@@ -260,7 +299,7 @@ function buildPanelHTML(): string {
 
         <!-- Skills -->
         <section class="settings-section" id="section-skills">
-          <h3>Skills <span class="skills-count" id="skills-count"></span></h3>
+          <h3><span data-i18n="skills">Skills</span> <span class="skills-count" id="skills-count"></span></h3>
           <p class="section-note">Enable the capabilities JARVIS should be ready to use. Active skills are loaded into context so he performs the task well. Some skills can run and produce a file.</p>
           <input type="search" id="skills-search" class="skills-search" placeholder="Search 100 skills — invoice, email, hiring..." />
           <div class="skills-chips" id="skills-chips"></div>
@@ -269,14 +308,14 @@ function buildPanelHTML(): string {
 
         <!-- Connected Tools (MCP) -->
         <section class="settings-section" id="section-mcp">
-          <h3>Connected Tools <span class="skills-count" id="mcp-count"></span></h3>
+          <h3><span data-i18n="tools">Connected Tools</span> <span class="skills-count" id="mcp-count"></span></h3>
           <p class="section-note">Connect external tools over MCP so JARVIS can reach your email, docs, CRM, and database. Add the matching API key in Settings where a tool needs auth.</p>
           <div class="mcp-list" id="mcp-list"></div>
         </section>
 
         <!-- Connection Status -->
         <section class="settings-section" id="section-status">
-          <h3>Connection Status</h3>
+          <h3 data-i18n="status">Connection Status</h3>
           <div class="status-grid">
             <div class="status-row"><span class="status-dot" id="status-claude-cli"></span><span>Claude Code CLI</span></div>
             <div class="status-row"><span class="status-dot" id="status-calendar"></span><span>Apple Calendar</span></div>
@@ -288,15 +327,15 @@ function buildPanelHTML(): string {
 
         <!-- User Preferences -->
         <section class="settings-section" id="section-preferences">
-          <h3>User Preferences</h3>
+          <h3 data-i18n="prefs">User Preferences</h3>
 
           <div class="settings-field">
-            <label>Your Name</label>
+            <label data-i18n="name">Your Name</label>
             <input type="text" id="input-user-name" placeholder="Your name" />
           </div>
 
           <div class="settings-field">
-            <label>Honorific</label>
+            <label data-i18n="honorific">Honorific</label>
             <select id="input-honorific">
               <option value="sir">Sir</option>
               <option value="ma'am">Ma'am</option>
@@ -305,18 +344,99 @@ function buildPanelHTML(): string {
           </div>
 
           <div class="settings-field">
-            <label>Calendar Accounts</label>
+            <label data-i18n="calendar">Calendar Accounts</label>
             <textarea id="input-calendar-accounts" rows="2" placeholder="auto (or comma-separated emails)"></textarea>
           </div>
 
+          <div class="settings-field">
+            <label data-i18n="language">Menu Language</label>
+            <select id="input-ui-language">
+              <option value="en">English</option>
+              <option value="pl">Polski</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="voiceLanguage">Response Language</label>
+            <select id="input-response-language">
+              <option value="en">English</option>
+              <option value="pl">Polski</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="fr">Français</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Português</option>
+              <option value="uk">Українська</option>
+            </select>
+          </div>
+
           <div class="settings-actions">
-            <button class="settings-btn primary" id="btn-save-prefs">Save Preferences</button>
+            <button class="settings-btn primary" id="btn-save-prefs" data-i18n="save">Save Preferences</button>
+          </div>
+        </section>
+
+        <!-- Personality -->
+        <section class="settings-section" id="section-personality">
+          <h3 data-i18n="personality">Personality Lab</h3>
+          <p class="section-note">Default is Stark-style JARVIS: loyal, elegant, concise, British, dryly funny. Tune him into an executive operator, coach, engineer, or custom assistant.</p>
+
+          <div class="personality-preview">
+            <span>Default protocol</span>
+            <strong>“Good evening, sir. Systems are standing by; naturally, I have taken the liberty of preparing the interesting bits first.”</strong>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="preset">Personality Preset</label>
+            <select id="input-personality-preset">
+              <option value="stark">Stark JARVIS (default)</option>
+              <option value="executive">Executive Operator</option>
+              <option value="coach">Supportive Coach</option>
+              <option value="engineer">Senior Engineer</option>
+              <option value="creative">Creative Director</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="humor">Humor</label>
+            <select id="input-humor-level">
+              <option value="balanced">Balanced dry wit</option>
+              <option value="subtle">Subtle</option>
+              <option value="playful">Playful</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="formality">Formality</label>
+            <select id="input-formality-level">
+              <option value="butler">British butler</option>
+              <option value="professional">Professional</option>
+              <option value="casual">Casual</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="initiative">Initiative</label>
+            <select id="input-proactive-mode">
+              <option value="smart">Smart suggestions</option>
+              <option value="quiet">Ask first</option>
+              <option value="high">Proactive mission control</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label data-i18n="brief">Custom Personality Brief</label>
+            <textarea id="input-personality-brief" rows="5" placeholder="e.g. Be concise in Polish, call me Szefie, make sharp but friendly comments, and prioritize business automation."></textarea>
+          </div>
+
+          <div class="settings-actions split-actions">
+            <button class="settings-btn" id="btn-generate-personality" data-i18n="generate">Generate JARVIS Personality</button>
+            <button class="settings-btn primary" id="btn-save-personality" data-i18n="save">Save Preferences</button>
           </div>
         </section>
 
         <!-- System Info -->
         <section class="settings-section" id="section-sysinfo">
-          <h3>System Info</h3>
+          <h3 data-i18n="system">System Info</h3>
           <div class="sysinfo-grid">
             <div class="sysinfo-row"><span class="sysinfo-label">Memory entries</span><span id="sysinfo-memory">--</span></div>
             <div class="sysinfo-row"><span class="sysinfo-label">Tasks</span><span id="sysinfo-tasks">--</span></div>
@@ -345,6 +465,7 @@ function createPanel(): HTMLElement {
   container.id = "settings-container";
   container.innerHTML = buildPanelHTML();
   document.body.appendChild(container);
+  applyLanguage(currentLanguage);
   return container;
 }
 
@@ -465,6 +586,31 @@ function renderEngine(status: StatusResponse) {
     const eleven = tts.providers.find((p) => p.id === "elevenlabs");
     if (voiceInput && !voiceInput.value && eleven) voiceInput.value = eleven.voice_id || "";
   }
+}
+
+async function savePersonalization(user_name: string, honorific: string, calendar_accounts: string) {
+  const interface_language = (document.getElementById("input-ui-language") as HTMLSelectElement).value;
+  const response_language = (document.getElementById("input-response-language") as HTMLSelectElement).value;
+  const personality_preset = (document.getElementById("input-personality-preset") as HTMLSelectElement).value;
+  const personality_brief = (document.getElementById("input-personality-brief") as HTMLTextAreaElement).value.trim();
+  const humor_level = (document.getElementById("input-humor-level") as HTMLSelectElement).value;
+  const formality_level = (document.getElementById("input-formality-level") as HTMLSelectElement).value;
+  const proactive_mode = (document.getElementById("input-proactive-mode") as HTMLSelectElement).value;
+  await apiPost("/api/settings/preferences", { user_name, honorific, calendar_accounts, interface_language, response_language, personality_preset, personality_brief, humor_level, formality_level, proactive_mode });
+  applyLanguage(interface_language);
+}
+
+function generatePersonalityBrief(preset: string, language: string, honorific: string): string {
+  const base = "Act like Stark-style JARVIS by default: elegant British butler energy, calm under pressure, loyal, concise, technically competent, and dryly funny. Address me naturally with the selected honorific, but do not overuse it.";
+  const variants: Record<string, string> = {
+    stark: "Keep the cinematic mission-control tone. Anticipate what I need, report status with numbers first, and use subtle dry wit when something is obvious.",
+    executive: "Prioritize decisions, deadlines, money, risk, and next actions. Challenge weak plans politely and summarize options like a chief of staff.",
+    coach: "Be motivating and structured. Turn vague goals into small actions, celebrate progress briefly, and keep momentum without becoming cheesy.",
+    engineer: "Be precise, test-oriented, skeptical of assumptions, and comfortable explaining technical tradeoffs. Prefer reproducible steps and evidence.",
+    creative: "Bring bold ideas, visual language, naming options, and brand polish. Keep the wit sharp and the output practical.",
+  };
+  const languageLine = language === "pl" ? "Respond in Polish by default, unless I ask for another language." : `Respond in ${language.toUpperCase()} by default, unless I ask for another language.`;
+  return `${base} ${variants[preset] || variants.stark} ${languageLine} My honorific is ${honorific}.`;
 }
 
 // --- Skills browser --------------------------------------------------------
@@ -638,12 +784,27 @@ async function loadStatus() {
 async function loadPreferences() {
   try {
     const prefs = await apiGet<PreferencesResponse>("/api/settings/preferences");
-    const nameEl = document.getElementById("input-user-name") as HTMLInputElement;
-    const honEl = document.getElementById("input-honorific") as HTMLSelectElement;
-    const calEl = document.getElementById("input-calendar-accounts") as HTMLTextAreaElement;
+    const nameEl = document.getElementById("input-user-name") as HTMLInputElement | null;
+    const honEl = document.getElementById("input-honorific") as HTMLSelectElement | null;
+    const calEl = document.getElementById("input-calendar-accounts") as HTMLTextAreaElement | null;
+    const uiEl = document.getElementById("input-ui-language") as HTMLSelectElement | null;
+    const responseEl = document.getElementById("input-response-language") as HTMLSelectElement | null;
+    const presetEl = document.getElementById("input-personality-preset") as HTMLSelectElement | null;
+    const briefEl = document.getElementById("input-personality-brief") as HTMLTextAreaElement | null;
+    const humorEl = document.getElementById("input-humor-level") as HTMLSelectElement | null;
+    const formalityEl = document.getElementById("input-formality-level") as HTMLSelectElement | null;
+    const proactiveEl = document.getElementById("input-proactive-mode") as HTMLSelectElement | null;
     if (nameEl) nameEl.value = prefs.user_name || "";
     if (honEl) honEl.value = prefs.honorific || "sir";
     if (calEl) calEl.value = prefs.calendar_accounts || "auto";
+    if (uiEl) uiEl.value = prefs.interface_language || "en";
+    if (responseEl) responseEl.value = prefs.response_language || "en";
+    if (presetEl) presetEl.value = prefs.personality_preset || "stark";
+    if (briefEl) briefEl.value = prefs.personality_brief || "";
+    if (humorEl) humorEl.value = prefs.humor_level || "balanced";
+    if (formalityEl) formalityEl.value = prefs.formality_level || "butler";
+    if (proactiveEl) proactiveEl.value = prefs.proactive_mode || "smart";
+    applyLanguage(prefs.interface_language || "en");
   } catch (e) {
     console.error("[settings] failed to load preferences:", e);
   }
@@ -777,8 +938,27 @@ function wireEvents() {
     const user_name = (document.getElementById("input-user-name") as HTMLInputElement).value.trim();
     const honorific = (document.getElementById("input-honorific") as HTMLSelectElement).value;
     const calendar_accounts = (document.getElementById("input-calendar-accounts") as HTMLTextAreaElement).value.trim();
-    await apiPost("/api/settings/preferences", { user_name, honorific, calendar_accounts });
+    await savePersonalization(user_name, honorific, calendar_accounts);
     await loadStatus();
+  });
+
+  document.getElementById("input-ui-language")?.addEventListener("change", (e) => {
+    applyLanguage((e.target as HTMLSelectElement).value);
+  });
+
+  document.getElementById("btn-save-personality")?.addEventListener("click", async () => {
+    const user_name = (document.getElementById("input-user-name") as HTMLInputElement).value.trim();
+    const honorific = (document.getElementById("input-honorific") as HTMLSelectElement).value;
+    const calendar_accounts = (document.getElementById("input-calendar-accounts") as HTMLTextAreaElement).value.trim();
+    await savePersonalization(user_name, honorific, calendar_accounts);
+  });
+
+  document.getElementById("btn-generate-personality")?.addEventListener("click", () => {
+    const preset = (document.getElementById("input-personality-preset") as HTMLSelectElement).value;
+    const language = (document.getElementById("input-response-language") as HTMLSelectElement).value;
+    const honorific = (document.getElementById("input-honorific") as HTMLSelectElement).value || "sir";
+    const generated = generatePersonalityBrief(preset, language, honorific);
+    (document.getElementById("input-personality-brief") as HTMLTextAreaElement).value = generated;
   });
 
   // Setup next button
@@ -832,18 +1012,20 @@ function enterSetupMode() {
   showSetupStep(0);
 }
 
-const ALL_SECTIONS = ["section-api-keys", "section-skills", "section-mcp", "section-status", "section-preferences", "section-sysinfo"];
-// Which section each setup step reveals (0=keys, 1=skills, 2=tools, 3=profile).
+const ALL_SECTIONS = ["section-api-keys", "section-engine", "section-skills", "section-mcp", "section-status", "section-preferences", "section-personality", "section-sysinfo"];
+// Which section each setup step reveals (0=keys, 1=engine, 2=skills, 3=tools, 4=profile, 5=personality).
 const SETUP_STEP_SECTION: Record<number, string> = {
   0: "section-api-keys",
-  1: "section-skills",
-  2: "section-mcp",
-  3: "section-preferences",
+  1: "section-engine",
+  2: "section-skills",
+  3: "section-mcp",
+  4: "section-preferences",
+  5: "section-personality",
 };
 
 function showSetupStep(step: number) {
   document.querySelectorAll("#onboarding-steps span").forEach((item, index) => {
-    item.classList.toggle("active", index === Math.min(step, 4));
+    item.classList.toggle("active", index === Math.min(step, 5));
   });
   const visible = SETUP_STEP_SECTION[step];
   ALL_SECTIONS.forEach((id) => {
@@ -855,18 +1037,20 @@ function showSetupStep(step: number) {
   const nextBtn = document.getElementById("btn-setup-next");
   if (nextBtn) {
     const labels: Record<number, string> = {
-      0: "Next: Skills",
-      1: "Next: Tools",
-      2: "Next: Profile",
-      3: "Finish Setup",
+      0: t("nextEngine"),
+      1: t("nextSkills"),
+      2: t("nextTools"),
+      3: t("nextProfile"),
+      4: t("nextPersonality"),
+      5: t("finish"),
     };
-    nextBtn.textContent = labels[step] || "Finish Setup";
+    nextBtn.textContent = labels[step] || t("finish");
   }
 }
 
 async function advanceSetup() {
   setupStep++;
-  if (setupStep >= 4) {
+  if (setupStep >= 6) {
     // Done — reveal everything and close
     isFirstTimeSetup = false;
     const welcome = document.getElementById("settings-welcome");
