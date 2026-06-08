@@ -1,7 +1,11 @@
 # JARVIS — Virtual AI Assistant by AI Evolution Labs
 
 <p align="center">
-  <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK onboarding, memory, skills, and developer automation.</strong>
+  <a href="https://aievolutionlabs.io/"><strong>AI Evolution Labs</strong></a> · voice-first desktop AI · cinematic HUD · local BYOK setup
+</p>
+
+<p align="center">
+  <strong>A local, agent-ready assistant that can listen, speak, remember, plan, research, code, and automate your daily operating system.</strong>
 </p>
 
 <p align="center">
@@ -13,69 +17,62 @@
 
 > “Will do, sir.”
 
-JARVIS is a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, mission-control HUD, voice loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and now includes an extensible integration catalog for Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible private agent backends.
+JARVIS is a local virtual assistant inspired by a cinematic mission-control cockpit: a reactive Three.js orb, live HUD panels, voice input, TTS output, persistent memory, screen context, task planning, skill packs, and developer automation. The project is built for **bring-your-own-key** usage and branded for **[AI Evolution Labs](https://aievolutionlabs.io/)**.
 
 ---
 
-## Highlights
+## What JARVIS can do
 
-- **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, and launch readiness.
-- **Multi-provider API catalog** — save core and optional keys from the settings panel; no manual `.env` editing required.
-- **Voice-first assistant** — Web Speech API transcription, LLM response generation, and TTS playback.
-- **Cinematic visualization** — Three.js audio-reactive orb plus MARK XL-inspired HUD panels.
-- **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs with a path for task-specific downloadable skills.
-- **Developer automation** — can spawn Claude Code sessions, scan projects, open terminals, and use prompt templates.
-- **Personal operating layer** — calendar, mail, notes, tasks, memory, planning, and screen context.
-- **Windows-friendly setup path** — `start.ps1`, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
+Use voice or the command bar. Examples:
 
----
-
-## Built-in and planned skill packs
-
-| Skill pack | Status | What it enables |
+| Area | Example command | What happens |
 | --- | --- | --- |
-| Core Productivity | Bundled | Calendar, Mail, Notes, tasks, memory, and day planning |
-| Developer Agent | Bundled | Project scanning, Claude Code dispatch, terminal automation, prompt templates |
-| Browser Research | Bundled | Web browsing, research briefs, and source-aware summaries |
-| Screen Context | Bundled | Active window awareness and screenshot-based context |
-| Voice Studio | Optional | Fish Audio now, ElevenLabs-ready voice provider expansion |
-| Task Skill Downloader | Planned | Task-specific skills installed on demand for agent workflows |
-
-The skill catalog is exposed through `/api/skills` and rendered in the onboarding/settings UI, so future installers can attach directly to the same metadata.
-
----
-
-## Supported API connectors
-
-| Provider | Environment key | Purpose | Required? |
-| --- | --- | --- | --- |
-| Anthropic Claude | `ANTHROPIC_API_KEY` | Primary reasoning and conversation brain | Yes |
-| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS | Recommended |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voices | No |
-| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider | No |
-| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider | No |
-| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research | No |
-| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider | No |
-| Groq | `GROQ_API_KEY` | Optional ultra-fast inference | No |
-| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend | No |
-
-> Keys are stored locally in `.env`. Do not commit your real `.env` file.
+| Executive brief | “Summarize today’s calendar and unread email priorities.” | Builds a concise daily brief from calendar/mail integrations where available. |
+| Screen help | “Look at my screen and tell me what matters.” | Uses screen context to explain the current state and suggest next action. |
+| Coding | “Review this project and suggest one high-impact improvement.” | Scans a codebase, reasons about architecture, and can dispatch Claude Code workflows. |
+| Research | “Create a source-aware research brief about this market.” | Uses browser/research tools and optional Perplexity configuration for grounded summaries. |
+| Planning | “Turn this idea into milestones and next tasks.” | Produces structured plans and can track tasks/memory locally. |
+| Writing | “Draft a polished client email from these notes.” | Converts rough notes into professional output. |
+| Files | “Use this dropped CSV as context and summarize anomalies.” | Dropped text/code/JSON/Markdown/CSV files become context. |
+| Personal ops | “What should I focus on next?” | Combines tasks, memory, notes, and schedule context. |
+| Voice studio | “Answer out loud in the JARVIS voice.” | Uses Fish Audio by default and keeps ElevenLabs-ready settings available. |
+| Automation | “Create a landing page from this prompt template.” | Uses bundled prompt templates and developer-agent flow. |
 
 ---
 
-## Requirements
+## Visual UI
 
-- Python 3.11+
-- Node.js 18+
-- Google Chrome for the Web Speech API
-- Anthropic API key for the main assistant brain
-- Optional voice/research/model keys listed above
-- macOS for Apple Calendar/Mail/Notes automation; Windows/Linux can run the web app and non-Apple capabilities, with Apple integrations reported as unavailable
-- Claude Code CLI for developer-agent workflows
+- **Reactive orb:** Three.js center visualization responds to assistant state and speech.
+- **MARK XL-style HUD:** left/right glass panels show live systems, artifacts, rapid actions, logs, and guarded actions.
+- **Polished onboarding:** guided setup for keys, skills, tools, profile, launch examples, and desktop shortcut status.
+- **Provider marketplace:** Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible configuration cards.
+- **Skills browser:** searchable categories with toggles so JARVIS knows which capabilities should be active.
 
 ---
 
-## Quick start
+## Installation and onboarding flow
+
+### Windows PowerShell — recommended for first install
+
+```powershell
+git clone https://github.com/your-org/jarvis.git
+cd jarvis
+.\start.ps1
+```
+
+The launcher will:
+
+1. Create `.env` from `.env.example` if needed.
+2. Create or refresh a desktop shortcut named **JARVIS by AI Evolution Labs**.
+3. Install Python dependencies and start the backend.
+4. Install frontend dependencies and start Vite.
+5. Print the local app URL: <http://localhost:5173>.
+
+> If Windows blocks scripts, run PowerShell as your user and execute:
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
 
 ### macOS / Linux
 
@@ -95,17 +92,67 @@ cd frontend
 npm run dev
 ```
 
-Open Chrome at <http://localhost:5173>. The onboarding panel will guide you through keys and profile setup.
+Open Chrome at <http://localhost:5173>. The onboarding panel opens automatically when the main Anthropic key is missing.
 
-### Windows PowerShell
+---
 
-```powershell
-git clone https://github.com/your-org/jarvis.git
-cd jarvis
-.\start.ps1
-```
+## Onboarding checklist
 
-Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed and starts backend/frontend terminals.
+| Step | UI section | Goal |
+| --- | --- | --- |
+| 1 | Keys | Add the required Anthropic key and recommended voice key. |
+| 2 | Skills | Enable the capabilities JARVIS should keep ready. |
+| 3 | Tools | Connect MCP tools for email, docs, CRM, databases, or team systems. |
+| 4 | Profile | Save your name, honorific, and calendar preferences. |
+| 5 | Launch | Try example commands and confirm the desktop shortcut path. |
+
+You can reopen setup/settings anytime with the **gear/menu** or by pressing `,`.
+
+---
+
+## Supported API connectors
+
+| Provider | Environment key | Purpose | Required? |
+| --- | --- | --- | --- |
+| Anthropic Claude | `ANTHROPIC_API_KEY` | Primary reasoning and conversation brain | Yes |
+| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS | Recommended |
+| Fish Voice | `FISH_VOICE_ID` | Voice selection for Fish Audio | Recommended |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voices | No |
+| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider | No |
+| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider | No |
+| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research | No |
+| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider | No |
+| Groq | `GROQ_API_KEY` | Optional ultra-fast inference | No |
+| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend | No |
+
+Keys are stored locally in `.env`. Never commit a real `.env` file.
+
+---
+
+## Built-in and planned skill packs
+
+| Skill pack | Status | What it enables |
+| --- | --- | --- |
+| Core Productivity | Bundled | Calendar, Mail, Notes, tasks, memory, and day planning |
+| Developer Agent | Bundled | Project scanning, Claude Code dispatch, terminal automation, prompt templates |
+| Browser Research | Bundled | Web browsing, research briefs, and source-aware summaries |
+| Screen Context | Bundled | Active window awareness and screenshot-based context |
+| Voice Studio | Optional | Fish Audio now; ElevenLabs-ready voice provider expansion |
+| Task Skill Downloader | Planned | Task-specific skills installed on demand for agent workflows |
+
+The skill catalog is exposed through `/api/skills` and rendered in onboarding/settings, so future installers can attach to the same metadata.
+
+---
+
+## Requirements
+
+- Python 3.11+
+- Node.js 18+
+- Google Chrome for the Web Speech API
+- Anthropic API key for the main assistant brain
+- Optional voice/research/model keys listed above
+- macOS for Apple Calendar/Mail/Notes automation; Windows/Linux can run the web app and non-Apple capabilities with graceful unavailable status
+- Claude Code CLI for developer-agent workflows
 
 ---
 
@@ -127,8 +174,6 @@ HONORIFIC=sir
 CALENDAR_ACCOUNTS=auto
 ```
 
-You can also open settings with `,` and add keys from the UI.
-
 ---
 
 ## Keyboard shortcuts
@@ -149,7 +194,7 @@ You can also open settings with `,` and add keys from the UI.
 ```text
 Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS provider → WebSocket → Speaker
                                               │
-                                              ├─ Skill catalog + settings onboarding
+                                              ├─ Skill catalog + onboarding/settings
                                               ├─ Claude Code / developer agent dispatch
                                               ├─ Calendar / Mail / Notes / Tasks / Memory
                                               └─ Browser, screen context, planning, and templates
@@ -177,7 +222,7 @@ Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS
 | `frontend/src/style.css` | Cinematic HUD, onboarding, provider, and skill styling |
 | `frontend/src/orb.ts` | Three.js orb visualization |
 | `.env.example` | Complete BYOK configuration template |
-| `start.ps1` | Windows-friendly launcher |
+| `start.ps1` | Windows launcher and desktop shortcut installer |
 | `templates/prompts/` | Agent prompt templates |
 
 ---
@@ -185,8 +230,9 @@ Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS
 ## Development checks
 
 ```bash
-python -m compileall server.py integrations.py
+python -m compileall server.py integrations.py onboarding.py
 cd frontend && npm run build
+python -m pytest -q
 ```
 
 ---
@@ -210,4 +256,4 @@ cd frontend && npm run build
 
 ---
 
-Built by **AI Evolution Labs** for people who want a local assistant that can talk, remember, plan, build, and evolve.
+Built by **[AI Evolution Labs](https://aievolutionlabs.io/)** for people who want a local assistant that can talk, remember, plan, build, and evolve.

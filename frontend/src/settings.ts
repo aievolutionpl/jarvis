@@ -125,15 +125,20 @@ function buildPanelHTML(): string {
     <div class="settings-backdrop" id="settings-backdrop"></div>
     <div class="settings-panel" id="settings-panel-inner">
       <div class="settings-header">
-        <h2>Settings</h2>
+        <h2>AI Evolution Labs · JARVIS</h2>
         <button class="settings-close" id="settings-close">&times;</button>
       </div>
 
       <div class="settings-welcome" id="settings-welcome" style="display:none">
         <div class="onboarding-hero">
-          <span class="onboarding-kicker">AI Evolution Labs</span>
-          <strong>Bring your own keys. Activate the agent stack.</strong>
-          <p>Configure the core brain, voice, research, and optional Hermes-compatible connectors without editing files by hand.</p>
+          <a class="onboarding-kicker" href="https://aievolutionlabs.io/" target="_blank" rel="noreferrer">AI Evolution Labs</a>
+          <strong>Install, connect, and launch JARVIS.</strong>
+          <p>A guided setup for local keys, voice, skills, tools, profile, and a desktop shortcut — no manual file editing required.</p>
+          <div class="onboarding-stats" aria-label="Setup checklist">
+            <span><b>BYOK</b> Local .env</span>
+            <span><b>100</b> Skills</span>
+            <span><b>Desktop</b> Shortcut</span>
+          </div>
         </div>
         <div class="onboarding-steps" id="onboarding-steps">
           <span class="active">1 Keys</span><span>2 Skills</span><span>3 Tools</span><span>4 Profile</span><span>5 Launch</span>
@@ -145,6 +150,7 @@ function buildPanelHTML(): string {
         <!-- API Keys -->
         <section class="settings-section" id="section-api-keys">
           <h3>API Keys</h3>
+          <p class="section-note">Required: Anthropic for the assistant brain. Recommended: Fish Audio for the JARVIS voice. Optional providers can be added now or later.</p>
 
           <div class="settings-field">
             <label>Anthropic API Key</label>
@@ -182,7 +188,7 @@ function buildPanelHTML(): string {
         <!-- Skills -->
         <section class="settings-section" id="section-skills">
           <h3>Skills <span class="skills-count" id="skills-count"></span></h3>
-          <p class="section-note">Enable the capabilities JARVIS should be ready to use. Active skills are loaded into context so he performs the task well. Some skills can run and produce a file.</p>
+          <p class="section-note">Enable the capabilities JARVIS should be ready to use. Active skills are loaded into context so he can draft, research, code, plan, automate, and produce files when a task needs it.</p>
           <input type="search" id="skills-search" class="skills-search" placeholder="Search 100 skills — invoice, email, hiring..." />
           <div class="skills-chips" id="skills-chips"></div>
           <div class="skills-list" id="skills-list"></div>
@@ -191,7 +197,7 @@ function buildPanelHTML(): string {
         <!-- Connected Tools (MCP) -->
         <section class="settings-section" id="section-mcp">
           <h3>Connected Tools <span class="skills-count" id="mcp-count"></span></h3>
-          <p class="section-note">Connect external tools over MCP so JARVIS can reach your email, docs, CRM, and database. Add the matching API key in Settings where a tool needs auth.</p>
+          <p class="section-note">Connect external tools over MCP so JARVIS can reach email, docs, CRM, databases, and team systems. Add matching API keys in Settings where a tool needs auth.</p>
           <div class="mcp-list" id="mcp-list"></div>
         </section>
 
@@ -232,6 +238,24 @@ function buildPanelHTML(): string {
 
           <div class="settings-actions">
             <button class="settings-btn primary" id="btn-save-prefs">Save Preferences</button>
+          </div>
+        </section>
+
+        <!-- Launch -->
+        <section class="settings-section launch-section" id="section-launch">
+          <h3>Launch Checklist</h3>
+          <p class="section-note">You are ready to start commanding JARVIS. Try one of these examples after setup:</p>
+          <div class="example-grid">
+            <button type="button" data-example-command="Summarize today's calendar and unread email priorities.">Daily executive brief</button>
+            <button type="button" data-example-command="Scan my screen and explain the next best action.">Screen-aware help</button>
+            <button type="button" data-example-command="Review this project and suggest the highest-impact improvement.">Codebase self-review</button>
+            <button type="button" data-example-command="Create a concise research brief with sources about my market.">Research brief</button>
+            <button type="button" data-example-command="Turn this idea into a task plan with milestones.">Project plan</button>
+            <button type="button" data-example-command="Draft a polished client email from these notes.">Client email</button>
+          </div>
+          <div class="desktop-shortcut-note">
+            <strong>Desktop shortcut</strong>
+            <span>On Windows, <code>start.ps1</code> creates or refreshes a <em>JARVIS by AI Evolution Labs</em> shortcut on the user's desktop.</span>
           </div>
         </section>
 
@@ -590,6 +614,18 @@ function wireEvents() {
     toggleSkill(btn.dataset.slug || "");
   });
 
+  // Launch examples (delegated)
+  document.getElementById("section-launch")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-example-command]");
+    if (!btn) return;
+    const input = document.getElementById("command-input") as HTMLInputElement | null;
+    if (input) {
+      input.value = btn.dataset.exampleCommand || "";
+      input.focus();
+    }
+    closeSettings();
+  });
+
   // MCP connect/disconnect (delegated)
   document.getElementById("mcp-list")?.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-mcp]");
@@ -616,13 +652,14 @@ function enterSetupMode() {
   showSetupStep(0);
 }
 
-const ALL_SECTIONS = ["section-api-keys", "section-skills", "section-mcp", "section-status", "section-preferences", "section-sysinfo"];
-// Which section each setup step reveals (0=keys, 1=skills, 2=tools, 3=profile).
+const ALL_SECTIONS = ["section-api-keys", "section-skills", "section-mcp", "section-status", "section-preferences", "section-launch", "section-sysinfo"];
+// Which section each setup step reveals (0=keys, 1=skills, 2=tools, 3=profile, 4=launch).
 const SETUP_STEP_SECTION: Record<number, string> = {
   0: "section-api-keys",
   1: "section-skills",
   2: "section-mcp",
   3: "section-preferences",
+  4: "section-launch",
 };
 
 function showSetupStep(step: number) {
@@ -642,7 +679,8 @@ function showSetupStep(step: number) {
       0: "Next: Skills",
       1: "Next: Tools",
       2: "Next: Profile",
-      3: "Finish Setup",
+      3: "Next: Launch",
+      4: "Finish Setup",
     };
     nextBtn.textContent = labels[step] || "Finish Setup";
   }
@@ -650,7 +688,7 @@ function showSetupStep(step: number) {
 
 async function advanceSetup() {
   setupStep++;
-  if (setupStep >= 4) {
+  if (setupStep >= 5) {
     // Done — reveal everything and close
     isFirstTimeSetup = false;
     const welcome = document.getElementById("settings-welcome");
