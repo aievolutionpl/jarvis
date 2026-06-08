@@ -1,211 +1,213 @@
-# JARVIS
+# JARVIS — Virtual AI Assistant by AI Evolution Labs
 
-**Just A Rather Very Intelligent System.**
+<p align="center">
+  <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK onboarding, memory, skills, and developer automation.</strong>
+</p>
 
-A voice-first AI assistant that runs on your Mac. Talk to it, and it talks back -- with a British accent, dry wit, and an audio-reactive particle orb straight out of the MCU.
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-WebSocket-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img alt="Three.js" src="https://img.shields.io/badge/Three.js-Orb-000000?style=for-the-badge&logo=threedotjs&logoColor=white" />
+</p>
 
-JARVIS connects to your Apple Calendar, Mail, and Notes. It can browse the web, spawn Claude Code sessions to build entire projects, and plan your day -- all through natural voice conversation.
+> “Will do, sir.”
 
-> "Will do, sir."
-
-<!-- TODO: Add demo GIF or screenshot here -->
-<!-- ![JARVIS Demo](docs/demo.gif) -->
+JARVIS is a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, mission-control HUD, voice loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and now includes an extensible integration catalog for Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible private agent backends.
 
 ---
 
-## What It Does
+## Highlights
 
-- **Voice conversation** -- speak naturally, get spoken responses with a JARVIS voice
-- **Builds software** -- say "build me a landing page" and watch Claude Code do the work
-- **Reads your calendar** -- "What's on my schedule today?"
-- **Reads your email** -- "Any unread messages?" (read-only, by design)
-- **Browses the web** -- "Search for the best restaurants in Austin"
-- **Manages tasks** -- "Remind me to call the client tomorrow"
-- **Takes notes** -- "Save that as a note"
-- **Remembers things** -- "I prefer React over Vue" (it remembers next time)
-- **Plans your day** -- combines calendar, tasks, and priorities into a plan
-- **Sees your screen** -- knows what apps are open for context-aware responses
-- **Audio-reactive orb** -- a Three.js particle visualization that pulses with JARVIS's voice
-- **Type or talk** -- a command bar lets you type requests when speaking isn't an option
-- **Keyboard shortcuts** -- drive the whole cockpit hands-on (press `?` for the list)
-- **Mission-control HUD** -- live system metrics, token usage, session cost, and an activity log
+- **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, and launch readiness.
+- **Multi-provider API catalog** — save core and optional keys from the settings panel; no manual `.env` editing required.
+- **Voice-first assistant** — Web Speech API transcription, LLM response generation, and TTS playback.
+- **Cinematic visualization** — Three.js audio-reactive orb plus MARK XL-inspired HUD panels.
+- **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs with a path for task-specific downloadable skills.
+- **Developer automation** — can spawn Claude Code sessions, scan projects, open terminals, and use prompt templates.
+- **Personal operating layer** — calendar, mail, notes, tasks, memory, planning, and screen context.
+- **Windows-friendly setup path** — `start.ps1`, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
+
+---
+
+## Built-in and planned skill packs
+
+| Skill pack | Status | What it enables |
+| --- | --- | --- |
+| Core Productivity | Bundled | Calendar, Mail, Notes, tasks, memory, and day planning |
+| Developer Agent | Bundled | Project scanning, Claude Code dispatch, terminal automation, prompt templates |
+| Browser Research | Bundled | Web browsing, research briefs, and source-aware summaries |
+| Screen Context | Bundled | Active window awareness and screenshot-based context |
+| Voice Studio | Optional | Fish Audio now, ElevenLabs-ready voice provider expansion |
+| Task Skill Downloader | Planned | Task-specific skills installed on demand for agent workflows |
+
+The skill catalog is exposed through `/api/skills` and rendered in the onboarding/settings UI, so future installers can attach directly to the same metadata.
+
+---
+
+## Supported API connectors
+
+| Provider | Environment key | Purpose | Required? |
+| --- | --- | --- | --- |
+| Anthropic Claude | `ANTHROPIC_API_KEY` | Primary reasoning and conversation brain | Yes |
+| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS | Recommended |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voices | No |
+| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider | No |
+| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider | No |
+| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research | No |
+| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider | No |
+| Groq | `GROQ_API_KEY` | Optional ultra-fast inference | No |
+| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend | No |
+
+> Keys are stored locally in `.env`. Do not commit your real `.env` file.
+
+---
 
 ## Requirements
 
-- **macOS** (uses AppleScript for Calendar, Mail, Notes integration)
-- **Python 3.11+**
-- **Node.js 18+**
-- **Google Chrome** (required for Web Speech API)
-- **Anthropic API key** -- powers the AI brain ([get one here](https://console.anthropic.com/))
-- **Fish Audio API key** -- powers the voice ([get one here](https://fish.audio/))
-- **Claude Code CLI** -- for spawning dev tasks ([install here](https://docs.anthropic.com/en/docs/claude-code))
+- Python 3.11+
+- Node.js 18+
+- Google Chrome for the Web Speech API
+- Anthropic API key for the main assistant brain
+- Optional voice/research/model keys listed above
+- macOS for Apple Calendar/Mail/Notes automation; Windows/Linux can run the web app and non-Apple capabilities, with Apple integrations reported as unavailable
+- Claude Code CLI for developer-agent workflows
 
-## Quick Start (with Claude Code)
+---
 
-The fastest way to get running:
+## Quick start
 
-```bash
-git clone https://github.com/yourusername/jarvis.git
-cd jarvis
-claude
-```
-
-Claude Code will read the project's `CLAUDE.md` and walk you through setup step by step -- API keys, dependencies, SSL certs, everything.
-
-## Manual Setup
+### macOS / Linux
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/yourusername/jarvis.git
+git clone https://github.com/your-org/jarvis.git
 cd jarvis
-
-# 2. Set up environment
 cp .env.example .env
-# Edit .env with your API keys (see below)
-
-# 3. Install Python dependencies
-pip install -r requirements.txt
-
-# 4. Install frontend dependencies
+python -m pip install -r requirements.txt
 cd frontend && npm install && cd ..
-
-# 5. Generate SSL certificates (needed for secure WebSocket)
-openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj '/CN=localhost'
-
-# 6. Start the backend (Terminal 1)
 python server.py
-
-# 7. Start the frontend (Terminal 2)
-cd frontend && npm run dev
-
-# 8. Open Chrome
-open http://localhost:5173
 ```
 
-Click the page once to enable audio, then speak. JARVIS will respond. You can also
-type into the command bar at the bottom of the screen if you'd rather not speak.
+In a second terminal:
 
-### Keyboard Shortcuts
+```bash
+cd frontend
+npm run dev
+```
 
-| Key | Action |
-|-----|--------|
-| `/` | Focus the command bar |
-| `M` | Mute / unmute the microphone |
-| `Esc` | Stop speaking · close panels |
-| `L` | Clear the activity log |
-| `,` | Open settings |
-| `?` | Toggle the shortcuts overlay |
+Open Chrome at <http://localhost:5173>. The onboarding panel will guide you through keys and profile setup.
 
-## Configuration
+### Windows PowerShell
 
-Edit your `.env` file:
+```powershell
+git clone https://github.com/your-org/jarvis.git
+cd jarvis
+.\start.ps1
+```
+
+Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed and starts backend/frontend terminals.
+
+---
+
+## Manual configuration
 
 ```env
-# Required
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
 FISH_API_KEY=your-fish-audio-api-key-here
-
-# Optional -- your name (JARVIS will address you personally)
+FISH_VOICE_ID=612b878b113047d9a770c069c8b4fdfe
+ELEVENLABS_API_KEY=
+DEEPSEEK_API_KEY=
+OPENAI_API_KEY=
+PERPLEXITY_API_KEY=
+GOOGLE_API_KEY=
+GROQ_API_KEY=
+HERMES_API_KEY=
 USER_NAME=Tony
-
-# Optional -- specific calendar accounts (comma-separated)
-# Leave empty to auto-discover all calendars
-CALENDAR_ACCOUNTS=you@gmail.com,work@company.com
+HONORIFIC=sir
+CALENDAR_ACCOUNTS=auto
 ```
+
+You can also open settings with `,` and add keys from the UI.
+
+---
+
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `/` | Focus the command bar |
+| `M` | Mute / unmute microphone |
+| `Esc` | Stop speaking or close panels |
+| `L` | Clear activity log |
+| `,` | Open settings and onboarding |
+| `?` | Toggle shortcuts overlay |
+
+---
 
 ## Architecture
 
-```
-Microphone -> Web Speech API -> WebSocket -> FastAPI -> Claude (Haiku) -> Fish Audio TTS -> WebSocket -> Speaker
-                                                |
-                                                v
-                                        Claude Code Tasks
-                                        (spawns real dev work)
-                                                |
-                                                v
-                                        AppleScript Bridge
-                                        (Calendar, Mail, Notes, Terminal)
+```text
+Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS provider → WebSocket → Speaker
+                                              │
+                                              ├─ Skill catalog + settings onboarding
+                                              ├─ Claude Code / developer agent dispatch
+                                              ├─ Calendar / Mail / Notes / Tasks / Memory
+                                              └─ Browser, screen context, planning, and templates
 ```
 
 | Layer | Technology |
-|-------|-----------|
-| Backend | FastAPI + Python (`server.py`, ~2300 lines) |
+| --- | --- |
+| Backend | FastAPI + Python |
 | Frontend | Vite + TypeScript + Three.js |
-| Communication | WebSocket (JSON messages + binary audio) |
-| AI (fast) | Claude Haiku -- low-latency voice responses |
-| AI (deep) | Claude Opus -- research and complex tasks |
-| TTS | Fish Audio with JARVIS voice model |
-| System | AppleScript for all macOS integrations |
+| Transport | WebSocket JSON messages + binary audio |
+| LLM | Anthropic primary, optional provider keys ready for expansion |
+| TTS | Fish Audio primary, ElevenLabs-ready configuration |
+| Local state | SQLite memory/tasks/notes |
+| OS bridge | AppleScript on macOS, graceful platform status elsewhere |
 
-## How the Voice Loop Works
+---
 
-1. You speak into your microphone
-2. Chrome's Web Speech API transcribes your speech in real-time
-3. The transcript is sent to the server via WebSocket
-4. JARVIS detects intent -- conversation, action, or build request
-5. For actions: spawns a Claude Code subprocess or runs AppleScript
-6. Generates a response via Claude Haiku (optimized for speed)
-7. Fish Audio converts the response to speech with the JARVIS voice
-8. Audio streams back to the browser via WebSocket
-9. The Three.js orb deforms and pulses in response to the audio
-10. Background tasks notify you proactively when they complete
-
-## Key Files
+## Key files
 
 | File | Purpose |
-|------|---------|
-| `server.py` | Main server -- WebSocket handler, LLM, action system |
-| `frontend/src/orb.ts` | Three.js particle orb visualization |
-| `frontend/src/voice.ts` | Web Speech API + audio playback |
-| `frontend/src/main.ts` | Frontend state machine |
-| `memory.py` | SQLite memory system with FTS5 full-text search |
-| `calendar_access.py` | Apple Calendar integration via AppleScript |
-| `mail_access.py` | Apple Mail integration (read-only) |
-| `notes_access.py` | Apple Notes integration |
-| `actions.py` | System actions (Terminal, Chrome, Claude Code) |
-| `browser.py` | Playwright web automation |
-| `work_mode.py` | Persistent Claude Code sessions |
-| `planner.py` | Multi-step task planning with smart questions |
+| --- | --- |
+| `server.py` | Main FastAPI/WebSocket server and settings endpoints |
+| `integrations.py` | API provider and skill-pack catalog |
+| `frontend/src/settings.ts` | Onboarding/settings UI logic |
+| `frontend/src/style.css` | Cinematic HUD, onboarding, provider, and skill styling |
+| `frontend/src/orb.ts` | Three.js orb visualization |
+| `.env.example` | Complete BYOK configuration template |
+| `start.ps1` | Windows-friendly launcher |
+| `templates/prompts/` | Agent prompt templates |
 
-## Features in Detail
+---
 
-### Action System
-JARVIS uses action tags to trigger real system actions:
-- `[ACTION:BUILD]` -- spawns Claude Code to build a project
-- `[ACTION:BROWSE]` -- opens Chrome to a URL or search query
-- `[ACTION:RESEARCH]` -- deep research with Claude Opus, outputs an HTML report
-- `[ACTION:PROMPT_PROJECT]` -- connects to an existing project via Claude Code
-- `[ACTION:ADD_TASK]` -- creates a tracked task with priority and due date
-- `[ACTION:REMEMBER]` -- stores a fact for future context
+## Development checks
 
-### Memory System
-JARVIS remembers things you tell it using SQLite with FTS5 full-text search. Preferences, decisions, and facts persist across sessions.
+```bash
+python -m compileall server.py integrations.py
+cd frontend && npm run build
+```
 
-### Calendar & Mail
-All macOS integrations use AppleScript -- no OAuth flows, no token management. Just native system access. Mail is intentionally read-only for safety.
+---
 
-## Contributing
+## Security notes
 
-Contributions are welcome. Some areas that could use work:
+- Keep real secrets in `.env` only.
+- The settings API accepts only known environment keys from the provider catalog and personalization fields.
+- Mail integration is read-only by design.
+- Optional providers are configuration-ready; execution routing should be implemented per provider before enabling autonomous use.
 
-- **Linux/Windows support** -- replace AppleScript with cross-platform alternatives
-- **Alternative TTS engines** -- add ElevenLabs, OpenAI TTS, or local models
-- **Alternative LLMs** -- add OpenAI, Gemini, or local model support
-- **Mobile client** -- a companion app for voice interaction on the go
-- **Plugin system** -- make it easy to add new actions and integrations
+---
 
-Please open an issue before submitting large PRs so we can discuss the approach.
+## Roadmap
 
-## License
+- Provider execution router for DeepSeek, OpenAI, Google, Groq, Perplexity, and Hermes.
+- Downloadable skill marketplace with task-triggered installation.
+- ElevenLabs runtime TTS selection in addition to saved configuration.
+- Windows-native desktop integrations to complement the macOS AppleScript bridge.
+- Screenshot/demo media for the GitHub README.
 
-Free for personal, non-commercial use. Commercial use requires a license — visit [ethanplus.ai](https://ethanplus.ai) for inquiries. See [LICENSE](LICENSE) for details.
+---
 
-## Credits
-
-Built by [Ethan](https://ethanplus.ai).
-
-Powered by [Anthropic Claude](https://anthropic.com) and [Fish Audio](https://fish.audio).
-
-Inspired by the AI that started it all -- Tony Stark's JARVIS.
-
-> **Disclaimer:** This is an independent fan project and is not affiliated with, endorsed by, or connected to Marvel Entertainment, The Walt Disney Company, or any related entities. The JARVIS name and character are property of Marvel Entertainment.
+Built by **AI Evolution Labs** for people who want a local assistant that can talk, remember, plan, build, and evolve.

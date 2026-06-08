@@ -9,6 +9,27 @@
 // Types
 // ---------------------------------------------------------------------------
 
+interface ApiProvider {
+  id: string;
+  name: string;
+  env_key: string;
+  category: string;
+  description: string;
+  placeholder: string;
+  docs_url: string;
+  optional: boolean;
+  configured: boolean;
+}
+
+interface SkillPack {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  bundled: boolean;
+  install_hint: string;
+}
+
 interface StatusResponse {
   claude_code_installed: boolean;
   calendar_accessible: boolean;
@@ -18,12 +39,15 @@ interface StatusResponse {
   task_count: number;
   server_port: number;
   uptime_seconds: number;
+  platform: string;
   env_keys_set: {
     anthropic: boolean;
     fish_audio: boolean;
     fish_voice_id: boolean;
     user_name: string;
   };
+  providers: ApiProvider[];
+  skills: SkillPack[];
 }
 
 interface PreferencesResponse {
@@ -73,7 +97,14 @@ function buildPanelHTML(): string {
       </div>
 
       <div class="settings-welcome" id="settings-welcome" style="display:none">
-        <p>Welcome to JARVIS. Let's get you set up.</p>
+        <div class="onboarding-hero">
+          <span class="onboarding-kicker">AI Evolution Labs</span>
+          <strong>Bring your own keys. Activate the agent stack.</strong>
+          <p>Configure the core brain, voice, research, and optional Hermes-compatible connectors without editing files by hand.</p>
+        </div>
+        <div class="onboarding-steps" id="onboarding-steps">
+          <span class="active">1 Keys</span><span>2 Skills</span><span>3 Profile</span><span>4 Launch</span>
+        </div>
       </div>
 
       <div class="settings-body">
@@ -108,9 +139,18 @@ function buildPanelHTML(): string {
             </div>
           </div>
 
+          <div class="provider-grid" id="provider-grid"></div>
+
           <div class="settings-actions">
             <button class="settings-btn primary" id="btn-save-keys">Save Keys</button>
           </div>
+        </section>
+
+        <!-- Skill Packs -->
+        <section class="settings-section" id="section-skills">
+          <h3>Skill Packs</h3>
+          <p class="section-note">Bundled skills are available now. Optional packs document what JARVIS can activate or download for a task-specific agent workflow.</p>
+          <div class="skill-grid" id="skill-grid"></div>
         </section>
 
         <!-- Connection Status -->
@@ -161,6 +201,7 @@ function buildPanelHTML(): string {
             <div class="sysinfo-row"><span class="sysinfo-label">Tasks</span><span id="sysinfo-tasks">--</span></div>
             <div class="sysinfo-row"><span class="sysinfo-label">Server port</span><span id="sysinfo-port">--</span></div>
             <div class="sysinfo-row"><span class="sysinfo-label">Uptime</span><span id="sysinfo-uptime">--</span></div>
+            <div class="sysinfo-row"><span class="sysinfo-label">Platform</span><span id="sysinfo-platform">--</span></div>
           </div>
         </section>
 
@@ -193,12 +234,57 @@ function setDotStatus(id: string, status: "green" | "red" | "yellow" | "off") {
   if (status !== "off") dot.classList.add(`status-${status}`);
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  }[char] || char));
+}
+
 function formatUptime(seconds: number): string {
   if (seconds < 60) return `${Math.floor(seconds)}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   return `${h}h ${m}m`;
+}
+
+function renderProviders(providers: ApiProvider[]) {
+  const grid = document.getElementById("provider-grid");
+  if (!grid) return;
+  grid.innerHTML = providers
+    .filter((provider) => !["anthropic", "fish_audio"].includes(provider.id))
+    .map((provider) => `
+      <div class="provider-card ${provider.configured ? "configured" : ""}">
+        <div class="provider-card-header">
+          <span class="status-dot ${provider.configured ? "status-green" : ""}" id="status-provider-${escapeHtml(provider.id)}"></span>
+          <div>
+            <strong>${escapeHtml(provider.name)}</strong>
+            <small>${escapeHtml(provider.category)}</small>
+          </div>
+          ${provider.docs_url ? `<a href="${escapeHtml(provider.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
+        </div>
+        <p>${escapeHtml(provider.description)}</p>
+        <input type="password" data-provider-key="${escapeHtml(provider.env_key)}" placeholder="${escapeHtml(provider.placeholder || provider.env_key)}" />
+      </div>
+    `)
+    .join("");
+}
+
+function renderSkills(skills: SkillPack[]) {
+  const grid = document.getElementById("skill-grid");
+  if (!grid) return;
+  grid.innerHTML = skills.map((skill) => `
+    <div class="skill-card ${skill.bundled ? "bundled" : "optional"}">
+      <span>${escapeHtml(skill.category)}</span>
+      <strong>${escapeHtml(skill.name)}</strong>
+      <p>${escapeHtml(skill.description)}</p>
+      ${skill.install_hint ? `<small>${escapeHtml(skill.install_hint)}</small>` : ""}
+    </div>
+  `).join("");
 }
 
 async function loadStatus() {
@@ -218,6 +304,9 @@ async function loadStatus() {
     setDotStatus("status-anthropic", status.env_keys_set.anthropic ? "green" : "red");
     setDotStatus("status-fish", status.env_keys_set.fish_audio ? "green" : "red");
 
+    renderProviders(status.providers || []);
+    renderSkills(status.skills || []);
+
     // System info
     const memEl = document.getElementById("sysinfo-memory");
     if (memEl) memEl.textContent = String(status.memory_count);
@@ -227,6 +316,8 @@ async function loadStatus() {
     if (portEl) portEl.textContent = String(status.server_port);
     const upEl = document.getElementById("sysinfo-uptime");
     if (upEl) upEl.textContent = formatUptime(status.uptime_seconds);
+    const platformEl = document.getElementById("sysinfo-platform");
+    if (platformEl) platformEl.textContent = status.platform || "unknown";
 
     return status;
   } catch (e) {
@@ -266,6 +357,14 @@ function wireEvents() {
     if (fishKey) {
       await apiPost("/api/settings/keys", { key_name: "FISH_API_KEY", key_value: fishKey });
     }
+
+    const providerInputs = Array.from(document.querySelectorAll<HTMLInputElement>("[data-provider-key]"));
+    await Promise.all(providerInputs.map((input) => {
+      const value = input.value.trim();
+      if (!value) return Promise.resolve();
+      return apiPost("/api/settings/keys", { key_name: input.dataset.providerKey, key_value: value });
+    }));
+
     await loadStatus();
   });
 
@@ -333,21 +432,24 @@ function enterSetupMode() {
 }
 
 function showSetupStep(step: number) {
-  const sections = ["section-api-keys", "section-status", "section-preferences", "section-sysinfo"];
+  const sections = ["section-api-keys", "section-skills", "section-status", "section-preferences", "section-sysinfo"];
+  document.querySelectorAll("#onboarding-steps span").forEach((item, index) => {
+    item.classList.toggle("active", index === Math.min(step, 3));
+  });
   sections.forEach((id, i) => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (step === 0 && i === 0) el.style.display = "";
-    else if (step === 1 && i === 0) el.style.display = "";
-    else if (step === 2 && i === 2) el.style.display = "";
+    if (step === 0 && id === "section-api-keys") el.style.display = "";
+    else if (step === 1 && id === "section-skills") el.style.display = "";
+    else if (step === 2 && id === "section-preferences") el.style.display = "";
     else if (step === 3) el.style.display = "";
     else el.style.display = "none";
   });
 
   const nextBtn = document.getElementById("btn-setup-next");
   if (nextBtn) {
-    if (step === 0) nextBtn.textContent = "Next: Test Keys";
-    else if (step === 1) nextBtn.textContent = "Next: Set Your Name";
+    if (step === 0) nextBtn.textContent = "Next: Skills";
+    else if (step === 1) nextBtn.textContent = "Next: Profile";
     else if (step === 2) nextBtn.textContent = "Finish Setup";
     else nextBtn.style.display = "none";
   }
@@ -364,7 +466,7 @@ async function advanceSetup() {
     if (nav) nav.style.display = "none";
 
     // Show all sections
-    ["section-api-keys", "section-status", "section-preferences", "section-sysinfo"].forEach((id) => {
+    ["section-api-keys", "section-skills", "section-status", "section-preferences", "section-sysinfo"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.style.display = "";
     });

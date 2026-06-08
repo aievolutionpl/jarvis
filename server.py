@@ -54,6 +54,7 @@ from memory import (
 from notes_access import get_recent_notes, read_note, search_notes_apple, create_apple_note
 from dispatch_registry import DispatchRegistry
 from planner import TaskPlanner, detect_planning_mode, BYPASS_PHRASES
+from integrations import provider_env_keys, providers_for_status, skills_for_status
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("jarvis")
@@ -2564,7 +2565,7 @@ class PreferencesUpdate(BaseModel):
 
 @app.post("/api/settings/keys")
 async def api_settings_keys(body: KeyUpdate):
-    allowed = {"ANTHROPIC_API_KEY", "FISH_API_KEY", "FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
+    allowed = provider_env_keys() | {"FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
     if body.key_name not in allowed:
         return JSONResponse({"success": False, "error": "Invalid key name"}, status_code=400)
     _write_env_key(body.key_name, body.key_value)
@@ -2635,7 +2636,19 @@ async def api_settings_status():
             "fish_voice_id": bool(env_dict.get("FISH_VOICE_ID", "").strip()),
             "user_name": env_dict.get("USER_NAME", ""),
         },
+        "providers": providers_for_status(env_dict),
+        "skills": skills_for_status(),
+        "platform": platform.system(),
     }
+
+@app.get("/api/settings/providers")
+async def api_settings_providers():
+    _, env_dict = _read_env()
+    return {"providers": providers_for_status(env_dict)}
+
+@app.get("/api/skills")
+async def api_skills():
+    return {"skills": skills_for_status()}
 
 @app.get("/api/settings/preferences")
 async def api_get_preferences():
