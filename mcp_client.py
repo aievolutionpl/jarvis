@@ -102,6 +102,17 @@ async def call(server_id: str, method: str, params: dict[str, Any] | None = None
         raise McpClientError(f"MCP server '{server_id}' is not connected")
     if server.get("auth_required") and not server.get("auth_present"):
         raise McpClientError(f"MCP server '{server_id}' needs {server.get('auth_env')} in Settings")
+    # A per-connection URL or stdio command (saved in Settings) overrides the
+    # catalog default — required for servers without a public hosted endpoint.
+    config = server.get("config") or {}
+    custom = (config.get("url") or config.get("command") or "").strip()
+    if custom:
+        server["launch"] = custom
+        server["transport"] = "http" if custom.startswith(("http://", "https://")) else "stdio"
+    if not server.get("launch"):
+        raise McpClientError(
+            f"MCP server '{server_id}' has no endpoint — paste its URL or command in Settings → Tools"
+        )
     if server["transport"] == "http":
         result = await _http_rpc(server, method, params)
     elif server["transport"] == "stdio":

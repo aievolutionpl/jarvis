@@ -34,41 +34,49 @@ class McpServer:
     category: str
     description: str
     transport: str          # "stdio" or "http"
-    launch: str             # command (stdio) or URL (http) template
+    launch: str             # command (stdio) or URL (http) template; "" → user must supply one
     auth_env: str = ""      # env var holding the token/key, if any
     docs_url: str = ""
     capabilities: tuple[str, ...] = ()
+    needs_config: bool = False   # no public hosted endpoint; user pastes a URL/command
+    config_hint: str = ""        # shown in Settings next to the config input
 
 
 # Curated catalog of MCP servers useful to a small company.
 MCP_CATALOG: tuple[McpServer, ...] = (
     McpServer("gmail", "Gmail", "Email", "Read, search, label, and draft email.", "http",
-              "https://mcp.example/gmail", "GMAIL_MCP_TOKEN",
-              "https://modelcontextprotocol.io/", ("search", "draft", "label")),
+              "", "GMAIL_MCP_TOKEN",
+              "https://modelcontextprotocol.io/", ("search", "draft", "label"),
+              needs_config=True,
+              config_hint="No public hosted endpoint — paste the MCP server URL or stdio command from your Google Workspace MCP provider."),
     McpServer("google-drive", "Google Drive", "Docs & Storage", "Search and read files and docs.", "http",
-              "https://mcp.example/gdrive", "GDRIVE_MCP_TOKEN",
-              "https://modelcontextprotocol.io/", ("search", "read")),
+              "", "GDRIVE_MCP_TOKEN",
+              "https://modelcontextprotocol.io/", ("search", "read"),
+              needs_config=True,
+              config_hint="No public hosted endpoint — paste the MCP server URL or stdio command from your Google Workspace MCP provider."),
     McpServer("notion", "Notion", "Docs & Wiki", "Create, search, and update Notion pages and databases.", "http",
               "https://mcp.notion.com/mcp", "NOTION_MCP_TOKEN",
               "https://developers.notion.com/", ("search", "create", "update")),
     McpServer("slack", "Slack", "Comms", "Post messages and read channels.", "stdio",
               "npx -y @modelcontextprotocol/server-slack", "SLACK_BOT_TOKEN",
               "https://modelcontextprotocol.io/", ("post", "read")),
-    McpServer("github", "GitHub", "Dev", "Issues, pull requests, and repository operations.", "stdio",
-              "npx -y @modelcontextprotocol/server-github", "GITHUB_TOKEN",
+    McpServer("github", "GitHub", "Dev", "Issues, pull requests, and repository operations.", "http",
+              "https://api.githubcopilot.com/mcp/", "GITHUB_TOKEN",
               "https://github.com/github/github-mcp-server", ("issues", "prs", "code")),
     McpServer("supabase", "Supabase", "Database", "Query and manage a Postgres database.", "stdio",
               "npx -y @supabase/mcp-server-supabase", "SUPABASE_ACCESS_TOKEN",
               "https://supabase.com/docs", ("sql", "schema")),
-    McpServer("stripe", "Stripe", "Payments", "Customers, invoices, and payment data.", "stdio",
-              "npx -y @stripe/mcp", "STRIPE_API_KEY",
-              "https://stripe.com/docs", ("invoices", "customers")),
+    McpServer("stripe", "Stripe", "Payments", "Customers, invoices, and payment data.", "http",
+              "https://mcp.stripe.com", "STRIPE_API_KEY",
+              "https://docs.stripe.com/mcp", ("invoices", "customers")),
     McpServer("hubspot", "HubSpot CRM", "CRM", "Contacts, deals, and pipeline.", "http",
-              "https://mcp.example/hubspot", "HUBSPOT_TOKEN",
-              "https://developers.hubspot.com/", ("contacts", "deals")),
+              "https://mcp.hubspot.com/anthropic", "HUBSPOT_TOKEN",
+              "https://developers.hubspot.com/mcp", ("contacts", "deals")),
     McpServer("google-calendar", "Google Calendar", "Scheduling", "Read and create calendar events.", "http",
-              "https://mcp.example/gcal", "GCAL_MCP_TOKEN",
-              "https://modelcontextprotocol.io/", ("read", "create")),
+              "", "GCAL_MCP_TOKEN",
+              "https://modelcontextprotocol.io/", ("read", "create"),
+              needs_config=True,
+              config_hint="No public hosted endpoint — paste the MCP server URL or stdio command from your Google Workspace MCP provider."),
     McpServer("figma", "Figma", "Design", "Read designs and generate UI from them.", "http",
               "https://mcp.figma.com/mcp", "FIGMA_MCP_TOKEN",
               "https://www.figma.com/developers", ("read", "generate")),
@@ -78,6 +86,24 @@ MCP_CATALOG: tuple[McpServer, ...] = (
     McpServer("web-search", "Web Search", "Research", "Search the web for current information.", "stdio",
               "npx -y @modelcontextprotocol/server-brave-search", "BRAVE_API_KEY",
               "https://modelcontextprotocol.io/", ("search",)),
+    McpServer("linear", "Linear", "Project Tracking", "Issues, projects, and cycles in Linear.", "http",
+              "https://mcp.linear.app/sse", "LINEAR_MCP_TOKEN",
+              "https://linear.app/docs/mcp", ("issues", "projects")),
+    McpServer("sentry", "Sentry", "Monitoring", "Errors, issues, and release health.", "http",
+              "https://mcp.sentry.dev/mcp", "SENTRY_MCP_TOKEN",
+              "https://docs.sentry.io/product/sentry-mcp/", ("errors", "issues")),
+    McpServer("asana", "Asana", "Project Tracking", "Tasks, projects, and goals in Asana.", "http",
+              "https://mcp.asana.com/sse", "ASANA_MCP_TOKEN",
+              "https://developers.asana.com/docs/mcp-server", ("tasks", "projects")),
+    McpServer("atlassian", "Atlassian (Jira & Confluence)", "Project Tracking", "Jira issues and Confluence pages.", "http",
+              "https://mcp.atlassian.com/v1/sse", "ATLASSIAN_MCP_TOKEN",
+              "https://www.atlassian.com/platform/remote-mcp-server", ("issues", "pages")),
+    McpServer("zapier", "Zapier", "Automation", "Trigger thousands of app actions through Zapier.", "http",
+              "https://mcp.zapier.com/api/mcp/mcp", "ZAPIER_MCP_TOKEN",
+              "https://zapier.com/mcp", ("actions", "automation")),
+    McpServer("canva", "Canva", "Design", "Create and manage Canva designs.", "http",
+              "https://mcp.canva.com/mcp", "CANVA_MCP_TOKEN",
+              "https://www.canva.dev/docs/connect/mcp-server/", ("designs", "export")),
 )
 
 _BY_ID = {s.id: s for s in MCP_CATALOG}
@@ -104,6 +130,11 @@ def init_mcp_db():
     """)
     conn.commit()
     conn.close()
+
+
+def auth_env_keys() -> set[str]:
+    """Env vars holding MCP auth tokens — whitelisted by the settings API."""
+    return {s.auth_env for s in MCP_CATALOG if s.auth_env}
 
 
 def _auth_present(server: McpServer) -> bool:

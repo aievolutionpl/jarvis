@@ -2851,8 +2851,13 @@ async def api_settings_keys(body: KeyUpdate):
             "JARVIS_HUMOR_LEVEL",
             "JARVIS_FORMALITY_LEVEL",
             "JARVIS_PROACTIVE_MODE",
+            "WEATHER_LOCATION_LABEL",
+            "WEATHER_LATITUDE",
+            "WEATHER_LONGITUDE",
+            "WEATHER_UNIT",
         }
         | provider_config.extra_env_keys()
+        | mcp_registry.auth_env_keys()
     )
     if body.key_name not in allowed:
         return JSONResponse({"success": False, "error": "Invalid key name"}, status_code=400)
