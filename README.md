@@ -36,7 +36,8 @@ It is designed as **bring your own key** software: keys stay in your local `.env
 - Launch Claude Code in a project, ask it to inspect/fix/build, and track active dispatches.
 - Connect external tools through curated MCP connectors (Notion, Slack, GitHub, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase, and more) with API tokens managed from Settings.
 - Use installable business skills such as meeting summaries, email triage, SOP writing, invoices, proposals, support replies, SQL help, and deployment checklists.
-- Lean on personal-assistant skills: daily brief, weekly review, focus sprints, reading list, meal/workout/learning plans, password generator, unit converter, and Markdown-to-HTML.
+- Lean on personal-assistant skills: daily brief, weekly review, focus sprints, reading list, meal/workout/learning plans, wellness breaks, password generator, unit converter, and Markdown-to-HTML.
+- Use precise utility skills with real executable handlers: timezone converter, date calculator, JSON formatter, CSV-to-table, writing analyzer, and checklist builder — plus research skills for fact-checking, product comparisons, and news digests.
 - Run executable skills that generate local artifacts under `data/artifacts/`.
 
 ### Supported connectors
@@ -262,7 +263,8 @@ Projekt działa w modelu **bring your own key**: klucze zostają lokalnie w `.en
 - Czytać Apple Calendar/Mail/Notes na macOS; na Windows/Linux pokazuje status niedostępnych integracji bez wysypywania aplikacji.
 - Uruchamiać Claude Code w projekcie, prosić go o analizę/poprawki/build i śledzić aktywne dispatch’e.
 - Korzystać z umiejętności biznesowych: podsumowania spotkań, triage maili, SOP, faktury, oferty, odpowiedzi supportu, SQL, checklisty deploymentu i inne.
-- Korzystać z umiejętności asystenta osobistego: poranny brief, przegląd tygodnia, sprinty skupienia, lista lektur, plany posiłków/treningów/nauki, generator haseł, konwerter jednostek i Markdown→HTML.
+- Korzystać z umiejętności asystenta osobistego: poranny brief, przegląd tygodnia, sprinty skupienia, lista lektur, plany posiłków/treningów/nauki, przerwy wellness, generator haseł, konwerter jednostek i Markdown→HTML.
+- Używać precyzyjnych narzędzi z wykonywalnymi handlerami: konwerter stref czasowych, kalkulator dat, formatowanie JSON, CSV→tabela, analizator tekstu i generator checklist — plus umiejętności researchowe: fact-checking, porównania produktów i przegląd newsów.
 - Generować lokalne artefakty z umiejętności wykonywalnych w `data/artifacts/`.
 
 ### Connectory API

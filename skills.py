@@ -37,7 +37,7 @@ def _get_db() -> sqlite3.Connection:
 
 
 # ---------------------------------------------------------------------------
-# Skill catalog — ~100 small-business capabilities across 15 categories.
+# Skill catalog — ~120 capabilities across 16 categories.
 # Each entry: (slug, name, category, when_to_use, instructions)
 # A handful are marked executable via EXECUTABLE_HANDLERS below.
 # ---------------------------------------------------------------------------
@@ -58,6 +58,7 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     # --- Marketing ---
     ("marketing-strategy", "Marketing Strategy", "Marketing", "building a marketing plan or strategy", "Define audience, positioning, channels, budget split, and 3 measurable goals. Recommend the two highest-leverage channels for a small budget."),
     ("seo-optimization", "SEO Optimization", "Marketing", "optimising content for search", "Cover title tag, meta description, H1, target keyword density, internal links, and intent match. Flag thin or keyword-stuffed sections."),
+    ("elevator-pitch", "Elevator Pitch", "Marketing", "writing an elevator pitch or one-liner", "Compress to: who it's for, the pain, what it does, and why it's different — under 30 seconds spoken. Offer a 10-second and a 30-second version."),
     ("keyword-research", "Keyword Research", "Marketing", "researching keywords for content or ads", "Group keywords by intent (informational/commercial/transactional), note rough difficulty, and recommend a small set of winnable, high-intent terms."),
     ("ad-copywriting", "Ad Copywriting", "Marketing", "writing paid ad copy for Google or Meta", "Match copy to platform limits, lead with the benefit, include one clear CTA, and provide 3 variants to test. State the angle of each."),
     ("landing-page-copy", "Landing Page Copy", "Marketing", "writing landing page copy", "Hero with a sharp value proposition, 3 benefit blocks, social proof, objection handling, and a single repeated CTA. Write for scanners."),
@@ -119,6 +120,7 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("meeting-minutes", "Meeting Minutes", "Operations", "capturing meeting minutes", "Record decisions, action items with owners and dates, and open questions — not a transcript. Lead with the action items."),
     ("project-kickoff", "Project Kickoff", "Operations", "kicking off a project", "Define goal, scope, roles, milestones, risks, and the first three actions. Capture what success looks like in one sentence."),
     ("risk-assessment", "Risk Assessment", "Operations", "assessing operational risk", "List risks with likelihood and impact, score them, and pair each high risk with a concrete mitigation and owner."),
+    ("checklist-builder", "Checklist Builder", "Operations", "turning a task or routine into a reusable checklist", "Break the job into verifiable steps in execution order, keep each item one action, and save it with the executable generator so it can be reused."),
 
     # --- Admin & Scheduling ---
     ("calendar-scheduling", "Calendar Scheduling", "Admin & Scheduling", "scheduling or optimising the calendar", "Propose time blocks that protect focus time, batch similar work, and respect existing commitments. Surface conflicts before booking."),
@@ -129,6 +131,8 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("appointment-reminders", "Appointment Reminders", "Admin & Scheduling", "setting up appointment reminders", "Draft reminder messages with the key details and timing, and recommend a reminder cadence that reduces no-shows."),
     ("todo-prioritization", "To-do Prioritization", "Admin & Scheduling", "prioritising a to-do list", "Rank by impact and urgency, identify the one thing that matters most today, and suggest what to drop or defer."),
     ("unit-converter", "Unit Converter", "Admin & Scheduling", "converting units of length, weight, temperature, or data", "Convert between units precisely using the executable converter and state the result plainly with sensible rounding."),
+    ("timezone-converter", "Timezone Converter", "Admin & Scheduling", "converting a time between timezones", "Use the executable converter for exact, DST-aware results; state both local times and the day shift if any."),
+    ("date-calculator", "Date Calculator", "Admin & Scheduling", "counting days between dates or adding days to a date", "Use the executable calculator for exact day math; report the count, the weekdays, and the weekday-only estimate when it matters."),
 
     # --- Legal & Compliance ---
     ("contract-review", "Contract Review", "Legal & Compliance", "reviewing a contract", "Summarise key terms, flag risky or unusual clauses, and list questions to raise. Always recommend a qualified lawyer for anything material."),
@@ -147,6 +151,7 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("ab-test-analysis", "A/B Test Analysis", "Data & Analytics", "analysing an A/B test", "State the metric, the lift, and whether the sample supports a conclusion. Be honest about significance; recommend ship/iterate/kill."),
     ("survey-analysis", "Survey Analysis", "Data & Analytics", "analysing survey results", "Summarise the quantitative results, theme the open responses, and surface the top 3 actionable insights with supporting numbers."),
     ("trend-analysis", "Trend Analysis", "Data & Analytics", "identifying trends in data", "Describe the direction, magnitude, and likely drivers; separate signal from noise and flag what to watch next."),
+    ("csv-to-table", "CSV to Table", "Data & Analytics", "turning CSV data into a readable table", "Run the executable converter to render CSV as a clean Markdown table artifact; confirm the header row and flag ragged rows instead of guessing."),
 
     # --- Product & Project ---
     ("user-story-writing", "User Story Writing", "Product & Project", "writing user stories", "Use 'As a / I want / so that' with clear, testable acceptance criteria. Keep stories small and independent."),
@@ -169,6 +174,8 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("learning-plan", "Learning Plan", "Personal Assistant", "learning a new skill or topic", "Define the target competence, sequence resources from fundamentals to practice projects, and set a weekly cadence with a visible milestone."),
     ("gift-ideas", "Gift Ideas", "Personal Assistant", "choosing a gift for someone", "Ask for the person's interests, the occasion, and budget, then suggest a shortlist from thoughtful to practical with a one-line why for each."),
     ("decision-helper", "Decision Helper", "Personal Assistant", "weighing a decision or trade-off", "Lay out the options against the criteria that actually matter, score them quickly, name the reversible vs irreversible parts, and recommend one with the reasoning."),
+    ("wellness-break", "Wellness Break", "Personal Assistant", "taking a stress, stretch, or screen break", "Prescribe a 3-5 minute reset matched to the moment — breathing, stretch, walk, or eyes-off-screen — and say when to take the next one."),
+    ("sleep-routine", "Sleep Wind-down", "Personal Assistant", "improving sleep or an evening wind-down", "Design a consistent wind-down: fixed lights-out, screens off beforehand, and one relaxing replacement activity. Adjust gently — no heroic overnight changes."),
 
     # --- IT & Dev ---
     ("code-review-helper", "Code Review Helper", "IT & Dev", "reviewing a code change", "Check correctness, edge cases, readability, and reuse. Lead with the highest-impact issues; suggest concrete fixes, not just problems."),
@@ -179,12 +186,25 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("automation-script", "Automation Script", "IT & Dev", "drafting an automation script", "Write a small, robust script with comments and error handling, and explain how to run it. Keep dependencies minimal."),
     ("password-generator", "Password Generator", "IT & Dev", "generating a strong password or passphrase", "Generate a cryptographically random password of the requested length and character mix. Use the executable generator; never reuse or invent passwords by hand."),
     ("markdown-to-html", "Markdown to HTML", "IT & Dev", "converting markdown into a shareable HTML page", "Convert the markdown into a clean dark-theme HTML page. Use the executable generator to save a previewable file."),
+    ("regex-builder", "Regex Builder", "IT & Dev", "writing or explaining a regular expression", "Write the exact pattern, explain each part, show a matching and a non-matching example, and warn about catastrophic backtracking or engine differences."),
+    ("git-helper", "Git Helper", "IT & Dev", "composing or untangling git commands", "Give the exact command sequence, state what each step changes, and flag anything destructive with a safe alternative. Never suggest a force-push without a warning."),
+    ("json-formatter", "JSON Formatter", "IT & Dev", "validating or pretty-printing JSON", "Run the executable formatter to validate and pretty-print; report the exact error position when invalid. Use it before sharing or committing JSON."),
 
     # --- Communications ---
     ("meeting-summary", "Meeting Summary", "Communications", "summarising a meeting or call", "Capture decisions, action items with owners, and open questions in a tight summary. Lead with what changed and what's next."),
     ("executive-summary", "Executive Summary", "Communications", "writing an executive summary", "One paragraph: the situation, the recommendation, and the ask. Numbers first, jargon out, fits on half a page."),
     ("translation", "Business Translation", "Communications", "translating business text", "Translate accurately while preserving tone and intent, adapt idioms, and flag anything culturally sensitive or ambiguous."),
     ("announcement-writing", "Announcement Writing", "Communications", "writing an internal announcement", "Lead with the change and why it matters, what's expected, and where to ask questions. Keep the tone clear and reassuring."),
+    ("email-reply", "Email Reply Drafting", "Communications", "drafting a reply to an email", "Mirror the sender's tone and formality, answer every question asked, keep it shorter than the original, and end with a clear next step."),
+    ("difficult-conversation", "Difficult Conversation Prep", "Communications", "preparing for a hard conversation", "Script the opening line, name the issue with facts not judgments, anticipate the two most likely reactions, and define the acceptable outcome before walking in."),
+    ("negotiation-prep", "Negotiation Prep", "Communications", "preparing for a negotiation", "Establish the target, walk-away point, and best alternative; list what's cheap for you but valuable to them; and plan the first offer with room to trade."),
+    ("text-stats", "Writing Analyzer", "Communications", "checking word count, reading time, or wordiness of a text", "Run the executable analyzer for exact counts, reading and speaking time, and the wordiest sentence, then suggest the single best trim."),
+
+    # --- Research & Insights ---
+    ("fact-check", "Fact Check", "Research & Insights", "verifying a claim, number, or quote", "Restate the claim precisely, check it against the most reliable sources available, and report verdict, confidence, and the best source. Say plainly when evidence is thin."),
+    ("compare-products", "Product Comparison", "Research & Insights", "comparing products, tools, or services before buying", "Build a short comparison on the criteria that matter to the user — price, fit, lock-in, reviews — and recommend one with the reasoning and the runner-up."),
+    ("news-digest", "News Digest", "Research & Insights", "catching up on news about a topic or industry", "Gather the latest developments, group them by theme, and deliver the five items that actually matter with one-line takeaways. Skip duplicates and fluff."),
+    ("deep-dive", "Deep Dive Research", "Research & Insights", "researching a topic in depth", "Define the question, gather from multiple angles, separate established facts from speculation, and finish with a structured brief: context, findings, open questions, recommendation."),
 ]
 # fmt: on
 
@@ -193,6 +213,8 @@ EXECUTABLE_SLUGS = {
     "invoice-creation", "sop-writing", "meeting-agenda", "email-newsletter",
     "proposal-writing", "meeting-minutes", "expense-tracking",
     "daily-brief", "reading-list", "password-generator", "unit-converter", "markdown-to-html",
+    "text-stats", "json-formatter", "csv-to-table", "timezone-converter",
+    "date-calculator", "checklist-builder",
 }
 
 # Default skills enabled on a fresh install (broadly useful for most users).
@@ -766,6 +788,195 @@ def _run_reading_list(params: dict) -> dict:
     return {"summary": f"Added '{title}' to the reading list ({count} item(s) saved)", "path": str(path), "content": content}
 
 
+def _run_text_stats(params: dict) -> dict:
+    import re
+    from collections import Counter
+    text = str(params.get("text") or params.get("content") or params.get("description") or "")
+    if not text.strip():
+        return {"error": "I need some text to analyse, sir."}
+    words = re.findall(r"[A-Za-z0-9'’-]+", text)
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+    word_count = len(words)
+    reading_min = max(1, round(word_count / 200))
+    speaking_min = max(1, round(word_count / 130))
+    avg_sentence = word_count / max(1, len(sentences))
+    stop = {"the", "and", "that", "with", "this", "from", "have", "your", "for",
+            "are", "was", "but", "not", "you", "all", "can", "will", "has",
+            "their", "they", "them", "were", "been", "into", "more", "than",
+            "when", "what", "which", "about", "would", "could", "there"}
+    top = Counter(w.lower() for w in words if len(w) > 3 and w.lower() not in stop).most_common(5)
+    lines = [
+        f"Words: {word_count}",
+        f"Characters: {len(text)}",
+        f"Sentences: {len(sentences)} (avg {avg_sentence:.1f} words)",
+        f"Reading time: ~{reading_min} min   Speaking time: ~{speaking_min} min",
+    ]
+    if top:
+        lines.append("Top words: " + ", ".join(f"{w} ({n})" for w, n in top))
+    longest = max(sentences, key=lambda s: len(s.split()), default="")
+    if longest and len(longest.split()) > 30:
+        lines.append(f"Wordiest sentence ({len(longest.split())} words): {longest[:160]}…")
+    content = "\n".join(lines)
+    return {"summary": f"{word_count} words, ~{reading_min} min read", "content": content}
+
+
+def _run_json_format(params: dict) -> dict:
+    import json
+    raw = params.get("json") or params.get("text") or params.get("content") or ""
+    if isinstance(raw, (dict, list)):
+        parsed = raw
+    else:
+        if not str(raw).strip():
+            return {"error": "I need some JSON to format, sir."}
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as e:
+            return {"error": f"Invalid JSON: {e.msg} at line {e.lineno}, column {e.colno}."}
+    sort_keys = str(params.get("sort_keys", "")).lower() in ("1", "true", "yes")
+    pretty = json.dumps(parsed, indent=2, ensure_ascii=False, sort_keys=sort_keys)
+    kind = type(parsed).__name__
+    size = len(parsed) if isinstance(parsed, (dict, list)) else 1
+    name = str(params.get("name", "formatted")).removesuffix(".json") + ".json"
+    path = _save_artifact(name, pretty + "\n")
+    return {"summary": f"Valid JSON ({kind}, {size} top-level item(s)), formatted and saved",
+            "path": str(path), "content": pretty}
+
+
+def _run_csv_table(params: dict) -> dict:
+    import csv as csv_mod
+    import io
+    raw = str(params.get("csv") or params.get("text") or params.get("content") or "")
+    if not raw.strip():
+        return {"error": "I need CSV data to convert, sir."}
+    rows = [r for r in csv_mod.reader(io.StringIO(raw.strip())) if r]
+    if not rows:
+        return {"error": "No rows found in that CSV, sir."}
+    width = max(len(r) for r in rows)
+    ragged = sum(1 for r in rows if len(r) != width)
+    norm = [r + [""] * (width - len(r)) for r in rows]
+
+    def cell(v: str) -> str:
+        return str(v).replace("|", "\\|").strip()
+
+    header, data = norm[0], norm[1:]
+    lines = ["| " + " | ".join(cell(c) for c in header) + " |",
+             "| " + " | ".join("---" for _ in header) + " |"]
+    lines += ["| " + " | ".join(cell(c) for c in r) + " |" for r in data]
+    content = "\n".join(lines)
+    path = _save_artifact(f"table_{time.strftime('%Y%m%d_%H%M%S')}.md", content + "\n")
+    summary = f"Converted {len(data)} row(s) x {width} column(s) to a Markdown table"
+    if ragged:
+        summary += f" ({ragged} ragged row(s) padded)"
+    return {"summary": summary, "path": str(path), "content": content}
+
+
+# Spoken city names → IANA zones (lowercase keys). Anything not listed falls
+# through to ZoneInfo(name) so full IANA names always work.
+_TZ_ALIASES = {
+    "warsaw": "Europe/Warsaw", "london": "Europe/London", "berlin": "Europe/Berlin",
+    "paris": "Europe/Paris", "madrid": "Europe/Madrid", "rome": "Europe/Rome",
+    "kyiv": "Europe/Kyiv", "dubai": "Asia/Dubai", "delhi": "Asia/Kolkata",
+    "mumbai": "Asia/Kolkata", "singapore": "Asia/Singapore", "hong kong": "Asia/Hong_Kong",
+    "tokyo": "Asia/Tokyo", "seoul": "Asia/Seoul", "sydney": "Australia/Sydney",
+    "auckland": "Pacific/Auckland", "new york": "America/New_York", "nyc": "America/New_York",
+    "boston": "America/New_York", "miami": "America/New_York", "chicago": "America/Chicago",
+    "austin": "America/Chicago", "denver": "America/Denver", "phoenix": "America/Phoenix",
+    "san francisco": "America/Los_Angeles", "los angeles": "America/Los_Angeles",
+    "seattle": "America/Los_Angeles", "sf": "America/Los_Angeles", "la": "America/Los_Angeles",
+    "toronto": "America/Toronto", "vancouver": "America/Vancouver",
+    "sao paulo": "America/Sao_Paulo", "utc": "UTC", "gmt": "UTC",
+}
+
+
+def _run_timezone(params: dict) -> dict:
+    import re
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    src_name = str(params.get("from", "")).strip()
+    dst_name = str(params.get("to", "")).strip()
+    if not src_name or not dst_name:
+        return {"error": "I need both zones, sir — e.g. {\"time\": \"15:00\", \"from\": \"Warsaw\", \"to\": \"San Francisco\"}."}
+    try:
+        src = ZoneInfo(_TZ_ALIASES.get(src_name.lower(), src_name))
+        dst = ZoneInfo(_TZ_ALIASES.get(dst_name.lower(), dst_name))
+    except Exception:
+        return {"error": "I couldn't resolve one of those timezones, sir — try an IANA name like Europe/Warsaw."}
+    time_str = str(params.get("time", "") or "").strip().lower()
+    date_str = str(params.get("date", "") or "").strip()
+    try:
+        if not time_str or time_str == "now":
+            base = datetime.now(tz=src)
+        else:
+            m = re.match(r"^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$", time_str)
+            if not m:
+                raise ValueError(time_str)
+            hour, minute = int(m.group(1)), int(m.group(2) or 0)
+            if m.group(3) == "pm" and hour < 12:
+                hour += 12
+            elif m.group(3) == "am" and hour == 12:
+                hour = 0
+            day = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
+            base = datetime(day.year, day.month, day.day, hour, minute, tzinfo=src)
+    except (ValueError, TypeError):
+        return {"error": "I couldn't parse that time, sir — use HH:MM (24h or am/pm) and YYYY-MM-DD."}
+    converted = base.astimezone(dst)
+    day_note = ""
+    if converted.date() > base.date():
+        day_note = " (next day)"
+    elif converted.date() < base.date():
+        day_note = " (previous day)"
+    answer = (f"{base.strftime('%H:%M')} in {src_name} ({src.key}) = "
+              f"{converted.strftime('%H:%M')} in {dst_name} ({dst.key}){day_note} "
+              f"on {base.strftime('%Y-%m-%d')}")
+    return {"summary": answer, "content": answer}
+
+
+def _run_date_calc(params: dict) -> dict:
+    from datetime import date, datetime, timedelta
+
+    def parse(d) -> date:
+        return datetime.strptime(str(d).strip(), "%Y-%m-%d").date()
+
+    try:
+        if params.get("add_days") is not None or params.get("days") is not None:
+            start = parse(params.get("date") or params.get("from") or date.today().isoformat())
+            delta = int(params.get("add_days", params.get("days")))
+            result = start + timedelta(days=delta)
+            verb = "after" if delta >= 0 else "before"
+            answer = f"{abs(delta)} day(s) {verb} {start.isoformat()} is {result.strftime('%A, %Y-%m-%d')}"
+            return {"summary": answer, "content": answer}
+        start = parse(params.get("from") or date.today().isoformat())
+        end = parse(params.get("to") or params.get("until"))
+        days = (end - start).days
+        weeks, rem = divmod(abs(days), 7)
+        first = min(start, end)
+        weekdays = sum(1 for i in range(abs(days)) if (first + timedelta(days=i)).weekday() < 5)
+        answer = (f"{start.isoformat()} ({start.strftime('%A')}) to {end.isoformat()} ({end.strftime('%A')}): "
+                  f"{days} day(s) — {weeks} week(s) and {rem} day(s), {weekdays} weekday(s)")
+        return {"summary": answer, "content": answer}
+    except (TypeError, ValueError):
+        return {"error": "I need ISO dates, sir — e.g. {\"from\": \"2026-06-09\", \"to\": \"2026-12-24\"} or {\"date\": \"2026-06-09\", \"add_days\": 30}."}
+
+
+def _run_checklist(params: dict) -> dict:
+    title = str(params.get("title") or params.get("description") or "Checklist").strip()
+    items = params.get("items") or params.get("steps") or []
+    if isinstance(items, str):
+        items = [i.strip("-• \t") for i in items.splitlines() if i.strip()]
+    lines = [f"# {title}", ""]
+    for item in items:
+        if isinstance(item, dict):
+            note = f" — {item['note']}" if item.get("note") else ""
+            lines.append(f"- [ ] {item.get('item') or item.get('title', '')}{note}")
+        else:
+            lines.append(f"- [ ] {item}")
+    if not items:
+        lines.append("- [ ] (add items)")
+    content = "\n".join(lines) + "\n"
+    path = _save_artifact(f"checklist_{title}.md", content)
+    return {"summary": f"Checklist '{title}' with {len(items)} item(s)", "path": str(path), "content": content}
+
+
 EXECUTABLE_HANDLERS = {
     "invoice-creation": _run_invoice,
     "sop-writing": _run_sop,
@@ -779,6 +990,12 @@ EXECUTABLE_HANDLERS = {
     "unit-converter": _run_unit_convert,
     "markdown-to-html": _run_md_to_html,
     "reading-list": _run_reading_list,
+    "text-stats": _run_text_stats,
+    "json-formatter": _run_json_format,
+    "csv-to-table": _run_csv_table,
+    "timezone-converter": _run_timezone,
+    "date-calculator": _run_date_calc,
+    "checklist-builder": _run_checklist,
 }
 
 
