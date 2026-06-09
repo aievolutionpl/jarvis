@@ -17,7 +17,7 @@
 
 > “Will do, sir.”
 
-[AI Evolution Labs](https://aievolutionlabs.io/) presents JARVIS: a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, mission-control HUD, voice loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and now includes an extensible integration catalog for Anthropic, Fish Audio, ElevenLabs, DeepSeek, OpenAI, Perplexity, Google AI, Groq, and Hermes-compatible private agent backends.
+[AI Evolution Labs](https://aievolutionlabs.io/) presents JARVIS: a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, customizable Control Center widgets, a right-side command menu, voice/text loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and includes a grouped connector catalog for required model keys plus optional voice, research, news, market, and private-agent providers.
 
 ---
 
@@ -50,6 +50,7 @@ JARVIS is meant to be a personal assistant for everything: voice, text, files, l
 | Development | “Review this project and fix one obvious UI bug.” | Can launch Claude Code workflows, inspect projects, and coordinate code changes. |
 | Personal memory | “Remember that I prefer concise Polish responses for business.” | Stores a durable preference and uses it in future conversations. |
 | Local models | “Switch to Ollama for private offline chats.” | Routes chat through a local Ollama model when configured. |
+| Control Center | “Send a market snapshot to my control center.” | Adds a JARVIS-authored widget card for summaries, news, weather, time, statistics, markets, and alerts. |
 | Self-improvement | “Review JARVIS itself and suggest improvements.” | Uses project awareness to inspect its own codebase and propose changes. |
 
 ---
@@ -70,18 +71,28 @@ The skill catalog is exposed through `/api/skills` and rendered in the onboardin
 
 ## Supported API connectors
 
+Settings now separates **Must / recommended** setup from optional connectors.
+
+### Must / recommended
+
 | Provider | Environment key | Purpose | Required? |
 | --- | --- | --- | --- |
-| Anthropic Claude | `ANTHROPIC_API_KEY` | Primary reasoning and conversation brain | Yes |
-| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS | Recommended |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voices | No |
-| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider | No |
-| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider | No |
-| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research | No |
-| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider | No |
-| Groq | `GROQ_API_KEY` | Optional ultra-fast inference | No |
-| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend | No |
-| Ollama | _none_ (`OLLAMA_BASE_URL`) | Local models (Llama, Gemma 3, Qwen…) — fully offline, no key | No |
+| Anthropic Claude | `ANTHROPIC_API_KEY` | Recommended primary reasoning brain and tool-action planner | Must-have unless another chat provider or Ollama is selected |
+| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS voice | Recommended for voice |
+| Fish Voice ID | `FISH_VOICE_ID` | Voice identity for Fish Audio | Recommended with Fish Audio |
+| Ollama | _none_ (`OLLAMA_BASE_URL`) | Local models (Llama, Gemma 3, Qwen…) — fully offline | Optional replacement/companion for cloud chat |
+
+### Optional connectors
+
+| Provider | Environment key | Purpose |
+| --- | --- | --- |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Premium/multilingual voices |
+| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider |
+| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider |
+| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research and news briefs |
+| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider |
+| Groq | `GROQ_API_KEY` | Optional ultra-fast inference |
+| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend |
 
 > Keys are stored locally in `.env`. Do not commit your real `.env` file.
 
@@ -104,6 +115,19 @@ hosted **Gemini** API is available via the Google AI connector.)
 ---
 
 
+
+## Control Center widgets
+
+The right HUD is now a fully customizable **Control Center**. Users can:
+
+- pin or hide widgets with **Tune**;
+- keep activity and guarded actions visible;
+- ask JARVIS to add text summaries, important alerts, news, weather, local time, stats, market/giełda snapshots, or any custom brief;
+- use the right-side menu action **Send brief to Control Center** for an instant situational summary.
+
+Internally, JARVIS can push cards with `[ACTION:CONTROL_CENTER] title ||| body ||| category`, so future tools can stream richer widget data without changing the voice loop.
+
+---
 ## Personalization and language
 
 Open **Settings → User Preferences** and **Settings → Personality Lab** to make the assistant feel like your own:

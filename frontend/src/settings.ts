@@ -180,7 +180,7 @@ function showTab(tabName: string) {
   const titleEl = document.getElementById("settings-title");
   if (titleEl) {
     const titles: Record<string, string> = {
-      onboarding: currentLanguage === "pl" ? "Klucze & Onboarding" : "API Keys & Onboarding",
+      onboarding: currentLanguage === "pl" ? "Start, model i API" : "Start, Model & APIs",
       skills: currentLanguage === "pl" ? "Zarządzanie Umiejętnościami" : "Skills Management",
       mcp: currentLanguage === "pl" ? "Narzędzia MCP" : "Connected Tools (MCP)",
       engine: currentLanguage === "pl" ? "Silnik LLM & Głos" : "LLM Engine & Voice",
@@ -205,10 +205,10 @@ function showTab(tabName: string) {
 
 const I18N: Record<string, Record<string, string>> = {
   en: {
-    settings: "Settings", keys: "API Keys", engine: "Engine", skills: "Skills", tools: "Connected Tools", status: "Connection Status", prefs: "User Preferences", personality: "Personality Lab", system: "System Info", save: "Save Preferences", generate: "Generate JARVIS Personality", language: "Menu Language", voiceLanguage: "Response Language", name: "Your Name", honorific: "Honorific", calendar: "Calendar Accounts", preset: "Personality Preset", humor: "Humor", formality: "Formality", initiative: "Initiative", brief: "Custom Personality Brief", nextSkills: "Next: Skills", nextTools: "Next: Tools", nextProfile: "Next: Profile", nextPersonality: "Next: Personality", nextEngine: "Next: Engine", finish: "Launch JARVIS",
+    settings: "Settings", keys: "Required APIs", engine: "Model & Voice", skills: "Skills", tools: "Connected Tools", status: "Connection Status", prefs: "User Preferences", personality: "Personality Lab", system: "System Info", save: "Save Preferences", generate: "Generate JARVIS Personality", language: "Menu Language", voiceLanguage: "Response Language", name: "Your Name", honorific: "Honorific", calendar: "Calendar Accounts", preset: "Personality Preset", humor: "Humor", formality: "Formality", initiative: "Initiative", brief: "Custom Personality Brief", nextSkills: "Next: Skills", nextTools: "Next: Tools", nextProfile: "Next: Profile", nextPersonality: "Next: Personality", nextEngine: "Next: Model", finish: "Launch JARVIS",
   },
   pl: {
-    settings: "Ustawienia", keys: "Klucze API", engine: "Silnik", skills: "Umiejętności", tools: "Narzędzia", status: "Status Połączeń", prefs: "Preferencje", personality: "Laboratorium Osobowości", system: "Informacje", save: "Zapisz Preferencje", generate: "Wygeneruj Osobowość JARVIS-a", language: "Język Menu", voiceLanguage: "Język Odpowiedzi", name: "Twoje Imię", honorific: "Zwrot", calendar: "Konta Kalendarza", preset: "Styl Osobowości", humor: "Humor", formality: "Formalność", initiative: "Inicjatywa", brief: "Własny Opis Osobowości", nextSkills: "Dalej: Umiejętności", nextTools: "Dalej: Narzędzia", nextProfile: "Dalej: Profil", nextPersonality: "Dalej: Osobowość", nextEngine: "Dalej: Silnik", finish: "Uruchom JARVIS-a",
+    settings: "Ustawienia", keys: "Wymagane API", engine: "Model i Głos", skills: "Umiejętności", tools: "Narzędzia", status: "Status Połączeń", prefs: "Preferencje", personality: "Laboratorium Osobowości", system: "Informacje", save: "Zapisz Preferencje", generate: "Wygeneruj Osobowość JARVIS-a", language: "Język Menu", voiceLanguage: "Język Odpowiedzi", name: "Twoje Imię", honorific: "Zwrot", calendar: "Konta Kalendarza", preset: "Styl Osobowości", humor: "Humor", formality: "Formalność", initiative: "Inicjatywa", brief: "Własny Opis Osobowości", nextSkills: "Dalej: Umiejętności", nextTools: "Dalej: Narzędzia", nextProfile: "Dalej: Profil", nextPersonality: "Dalej: Osobowość", nextEngine: "Dalej: Model", finish: "Uruchom JARVIS-a",
   },
 };
 
@@ -269,8 +269,8 @@ function buildPanelHTML(): string {
           
           <nav class="nav-links">
             <button class="nav-link active" data-target-tab="onboarding">
-              <span class="nav-icon">🔑</span>
-              <span>Klucze & Start</span>
+              <span class="nav-icon">🚀</span>
+              <span>Start + API</span>
             </button>
             <button class="nav-link" data-target-tab="skills">
               <span class="nav-icon">⚡</span>
@@ -322,8 +322,8 @@ function buildPanelHTML(): string {
         <div class="settings-welcome" id="settings-welcome" style="display:none">
           <div class="onboarding-hero">
             <span class="onboarding-kicker">AI Evolution Labs</span>
-            <strong>Bring your own keys. Activate the agent stack.</strong>
-            <p>Configure the core brain, voice, research, and optional Hermes-compatible connectors without editing files by hand.</p>
+            <strong>Choose the brain, add only the keys you need, then tune the cockpit.</strong>
+            <p>Minimum setup is the reasoning model plus optional voice. Everything else is grouped as optional connectors you can enable later.</p>
           </div>
           <div class="onboarding-steps" id="onboarding-steps" style="display:none">
             <span class="active">1 Keys</span><span>2 Engine</span><span>3 Skills</span><span>4 Tools</span><span>5 Profile</span><span>6 Personality</span>
@@ -334,25 +334,25 @@ function buildPanelHTML(): string {
 
           <!-- Krótka instrukcja onboardingowa dla użytkownika -->
           <div class="onboarding-guide-card" id="onboarding-guide">
-            <h4>Witaj w JARVIS! 🤖</h4>
-            <p>JARVIS to Twój wirtualny asystent sterowany głosem, który potrafi zarządzać zadaniami, przeglądać sieć, pisać kod i analizować ekran. Aby go aktywować, potrzebujesz kluczy API dla mózgu asystenta oraz jego syntezatora mowy.</p>
+            <h4>Witaj w JARVIS Control Center! 🤖</h4>
+            <p>Start jest prosty: wybierz model w zakładce <strong>Model i Głos</strong>, dodaj minimalne klucze API poniżej, a potem włącz widgety, umiejętności i narzędzia. JARVIS może później wysyłać do Control Center własne podsumowania, newsy, pogodę, statystyki i alerty.</p>
             <div class="onboarding-guide-steps">
               <div class="onboarding-guide-step">
                 <span class="onboarding-guide-step-num">1</span>
                 <div class="onboarding-guide-step-text">
-                  <strong>Klucz Anthropic (Claude):</strong> Załóż konto i pobierz klucz z portalu <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer">console.anthropic.com</a>. Ten klucz jest kluczowy dla inteligencji i planowania działań.
+                  <strong>Must-have — mózg asystenta:</strong> dodaj Anthropic API key albo wybierz skonfigurowany alternatywny model w zakładce Model i Głos. Claude jest nadal rekomendowany do akcji narzędziowych.
                 </div>
               </div>
               <div class="onboarding-guide-step">
                 <span class="onboarding-guide-step-num">2</span>
                 <div class="onboarding-guide-step-text">
-                  <strong>Klucz Fish Audio (Głos):</strong> Pobierz darmowy klucz na stronie <a href="https://fish.audio/" target="_blank" rel="noreferrer">fish.audio</a>, aby JARVIS zyskał swój ikoniczny głos. Kopiuj też Voice ID podany obok.
+                  <strong>Optional — głos i integracje:</strong> Fish Audio/ElevenLabs, research, giełda, newsy i inne providery możesz dodać od razu albo później. Bez nich tekstowy JARVIS nadal działa.
                 </div>
               </div>
               <div class="onboarding-guide-step">
                 <span class="onboarding-guide-step-num">3</span>
                 <div class="onboarding-guide-step-text">
-                  Wklej klucze w pola poniżej, kliknij <strong>Save Keys</strong> i przetestuj połączenie przyciskiem <strong>Test</strong>. Zielone kropki oznaczają gotowość systemu!
+                  Kliknij <strong>Save Keys</strong>, potem <strong>Test</strong>. Zielone kropki oznaczają gotowość; reszta connectorów jest opcjonalna i widoczna w sekcji Optional poniżej.
                 </div>
               </div>
             </div>
@@ -360,7 +360,8 @@ function buildPanelHTML(): string {
 
           <!-- API Keys -->
           <section class="settings-section" id="section-api-keys">
-            <h3 data-i18n="keys">API Keys</h3>
+            <h3 data-i18n="keys">Required APIs</h3>
+            <p class="section-note"><strong>Must:</strong> at least one reasoning provider. <strong>Recommended:</strong> Fish Audio for voice. Optional connectors below unlock news, market research, alternate models, and premium voices.</p>
 
             <div class="settings-field">
               <label>Anthropic API Key</label>
@@ -388,6 +389,7 @@ function buildPanelHTML(): string {
               </div>
             </div>
 
+            <div class="api-group-title">Optional connectors</div>
             <div class="provider-grid" id="provider-grid"></div>
 
             <div class="settings-actions">
@@ -397,8 +399,8 @@ function buildPanelHTML(): string {
 
           <!-- Engine: active brain + voice -->
           <section class="settings-section" id="section-engine">
-            <h3 data-i18n="engine">Engine</h3>
-            <p class="section-note">Choose which model thinks and which voice speaks. Claude is recommended for tool actions; other brains chat well but may be weaker at running tools.</p>
+            <h3 data-i18n="engine">Model & Voice</h3>
+            <p class="section-note">Choose the model JARVIS uses for conversation. Claude is recommended for tool actions; OpenAI, Google, DeepSeek, Groq, or Ollama can be selected when configured.</p>
 
             <div class="settings-field">
               <label>Active Brain</label>

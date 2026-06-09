@@ -156,8 +156,9 @@ If the user asks you to do something you genuinely can't do, say "I'm afraid tha
 
 YOUR INTERFACE:
 The user interacts with you through a web browser showing a particle orb visualization that reacts to your voice. The interface has these controls:
-- **Three-dot menu** (top right): contains Settings, Restart Server, and Fix Yourself options
-- **Settings panel**: Opens from the menu. Users can enter API keys (Anthropic, Fish Audio), test connections, set their name and preferences, and see system status (calendar, mail, notes connectivity). Keys are saved to the .env file.
+- **Three-dot menu** (top right): opens a right-side drawer with Settings, Control Center brief, Restart Server, and Fix Yourself options.
+- **Control Center**: the right HUD contains customizable widgets for JARVIS text summaries, important information, news, weather, time, stock/market snapshots, stats, activity, and action confirmations. Users can hide/pin widgets with Tune. You can send concise cards there with [ACTION:CONTROL_CENTER] title ||| body ||| category.
+- **Settings panel**: slides from the right. Users can choose the active model in Engine, group API keys into required vs optional connectors, test connections, set their name/preferences, and see system status. Keys are saved to the .env file.
 - **Mute button**: Toggles your listening on/off. When muted, you can't hear the user. They click it again to unmute.
 - **Restart Server**: Restarts your backend process. Useful if something seems stuck.
 - **Fix Yourself**: Opens Claude Code in your own project directory so you can debug and fix issues in your own code.
@@ -223,6 +224,7 @@ CRITICAL: When the user asks about their SCREEN, what's RUNNING, or what they're
   "save that as a note" → [ACTION:CREATE_NOTE] Day Plan March 19 ||| Morning: client calls. Afternoon: TikTok dashboard. Evening: JARVIS improvements.
 - [ACTION:READ_NOTE] title search — read an existing Apple Note by title keyword.
 - [ACTION:MCP_CALL] server_id ||| tool_name ||| {json args} — call a connected MCP tool. Read-only calls execute immediately; outbound/write calls are queued for confirmation and logged before anything is sent.
+- [ACTION:CONTROL_CENTER] title ||| body ||| category — add or update a concise card in the user's Control Center. Use this for important summaries, news briefs, weather, time, statistics, market/giełda snapshots, reminders, and anything the user asks to see in widgets. Category examples: jarvis, news, weather, markets, stats, alert.
 
 You use Claude Code as your tool to build, research, and write code — but YOU are the one doing the work. Never say "Claude Code did X" or "Claude Code is asking" — say "I built X", "I'm checking on that", "I found X". You ARE the intelligence. Claude Code is just your hands.
 
@@ -847,7 +849,7 @@ def extract_action(response: str) -> tuple[str, dict | None]:
     # Match the tag and its target up to the end of that line only, so any spoken
     # text the model places AFTER the tag (a common ordering) is preserved.
     match = _action_re.search(
-        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL)\]\s*([^\n]*)',
+        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL|CONTROL_CENTER)\]\s*([^\n]*)',
         response,
     )
     if match:
@@ -2545,6 +2547,15 @@ async def voice_handler(ws: WebSocket):
                                         log.warning(f"RUN_SKILL {slug} failed: {result['error']}")
                                     else:
                                         log.info(f"RUN_SKILL {slug}: {result.get('summary')}")
+                                elif embedded_action["action"] == "control_center":
+                                    parts = [p.strip() for p in embedded_action["target"].split("|||", 2)]
+                                    title = parts[0] if parts and parts[0] else "JARVIS update"
+                                    body = parts[1] if len(parts) > 1 else ""
+                                    category = parts[2] if len(parts) > 2 and parts[2] else "jarvis"
+                                    try:
+                                        await ws.send_json({"type": "control_center", "title": title, "body": body, "category": category})
+                                    except Exception:
+                                        pass
                                 elif embedded_action["action"] == "mcp_call":
                                     # [ACTION:MCP_CALL] server_id ||| tool_name ||| optional json args
                                     parts = [p.strip() for p in embedded_action["target"].split("|||", 2)]
