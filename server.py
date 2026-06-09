@@ -62,6 +62,7 @@ import onboarding as onboarding_system
 import mcp_registry
 import mcp_client
 import action_log
+import system_control
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("jarvis")
@@ -225,6 +226,15 @@ CRITICAL: When the user asks about their SCREEN, what's RUNNING, or what they're
 - [ACTION:READ_NOTE] title search — read an existing Apple Note by title keyword.
 - [ACTION:MCP_CALL] server_id ||| tool_name ||| {json args} — call a connected MCP tool. Read-only calls execute immediately; outbound/write calls are queued for confirmation and logged before anything is sent.
 - [ACTION:CONTROL_CENTER] title ||| body ||| category — add or update a concise card in the user's Control Center. Use this for important summaries, news briefs, weather, time, statistics, market/giełda snapshots, reminders, and anything the user asks to see in widgets. Category examples: jarvis, news, weather, markets, stats, alert.
+
+DESKTOP CONTROL (works on macOS, Windows, and Linux; unsupported combos report gracefully):
+- [ACTION:OPEN_APP] app name — launch a desktop application. "open Spotify" → [ACTION:OPEN_APP] Spotify
+- [ACTION:OPEN_PATH] /path/to/file-or-folder — open a file or folder in the system file manager.
+- [ACTION:SET_VOLUME] 0-100 — set the system output volume. "volume to forty percent" → [ACTION:SET_VOLUME] 40
+- [ACTION:MEDIA] play_pause|next|previous — control music/media playback.
+- [ACTION:LOCK_SCREEN] — lock the computer when the user asks to lock up or step away.
+- [ACTION:CLIPBOARD] text — copy the given text to the user's clipboard.
+- [ACTION:SCREENSHOT] — capture the screen to a file the user can open later.
 
 You use Claude Code as your tool to build, research, and write code — but YOU are the one doing the work. Never say "Claude Code did X" or "Claude Code is asking" — say "I built X", "I'm checking on that", "I found X". You ARE the intelligence. Claude Code is just your hands.
 
@@ -863,7 +873,7 @@ def extract_action(response: str) -> tuple[str, dict | None]:
     # Match the tag and its target up to the end of that line only, so any spoken
     # text the model places AFTER the tag (a common ordering) is preserved.
     match = _action_re.search(
-        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL|CONTROL_CENTER)\]\s*([^\n]*)',
+        r'\[ACTION:(BUILD|BROWSE|RESEARCH|OPEN_TERMINAL|PROMPT_PROJECT|ADD_TASK|ADD_NOTE|COMPLETE_TASK|REMEMBER|CREATE_NOTE|READ_NOTE|SCREEN|PROFILE|RECOMMEND_SKILLS|ONBOARD_DONE|RUN_SKILL|MCP_CALL|CONTROL_CENTER|OPEN_APP|OPEN_PATH|SET_VOLUME|MEDIA|LOCK_SCREEN|CLIPBOARD|SCREENSHOT)\]\s*([^\n]*)',
         response,
     )
     if match:
@@ -892,6 +902,43 @@ async def _execute_browse(target: str):
             await open_browser(f"https://www.google.com/search?q={quote(target)}")
     except Exception as e:
         log.error(f"Browse execution failed: {e}")
+
+
+_DESKTOP_CONTROL_HANDLERS = {
+    "open_app": system_control.open_app,
+    "open_path": system_control.open_path,
+    "set_volume": system_control.set_volume,
+    "media": system_control.media,
+    "clipboard": system_control.clipboard_copy,
+}
+
+
+async def _execute_desktop_control(action: str, target: str):
+    """Run a cross-platform desktop-control action and record it in the action log."""
+    try:
+        if action == "lock_screen":
+            result = await system_control.lock_screen()
+        elif action == "screenshot":
+            result = await system_control.take_screenshot()
+        else:
+            handler = _DESKTOP_CONTROL_HANDLERS.get(action)
+            if handler is None:
+                return
+            result = await handler(target)
+        action_log.record_action(
+            "desktop_control",
+            f"Desktop control: {action}",
+            status="completed" if result.get("success") else "failed",
+            risk="medium" if action == "lock_screen" else "low",
+            target=target[:200],
+            result=result,
+        )
+        if not result.get("success"):
+            log.warning(f"Desktop control {action} failed: {result.get('confirmation')}")
+        else:
+            log.info(f"Desktop control {action}: {result.get('confirmation')}")
+    except Exception as e:
+        log.error(f"Desktop control {action} failed: {e}")
 
 
 async def _execute_research(target: str, ws=None):
@@ -2425,6 +2472,8 @@ async def voice_handler(ws: WebSocket):
                                     )
                                 elif embedded_action["action"] == "browse":
                                     asyncio.create_task(_execute_browse(embedded_action["target"]))
+                                elif embedded_action["action"] in ("open_app", "open_path", "set_volume", "media", "lock_screen", "clipboard", "screenshot"):
+                                    asyncio.create_task(_execute_desktop_control(embedded_action["action"], embedded_action["target"]))
                                 elif embedded_action["action"] == "research":
                                     # Research enters work mode too
                                     name = _generate_project_name(embedded_action["target"])
