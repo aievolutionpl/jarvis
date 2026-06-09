@@ -67,19 +67,39 @@ async def _complete_anthropic(client, model, system, messages, max_tokens, on_us
     return resp.content[0].text
 
 
+def _normalise_model(provider: str, model: str) -> str:
+    """Map spoken/legacy aliases to real API model identifiers."""
+    wanted = (model or "").strip()
+    if provider == "openai" and wanted.lower() in {"gpt-5-5", "gpt-5.5", "gpt 5-5", "gpt 5.5"}:
+        return config.LLM_PROVIDERS["openai"]["default_model"]
+    if provider == "deepseek" and wanted.lower() in {"deepseek-v4", "deepseek v4 pro", "deepseek-v4-pro"}:
+        return "deepseek-v4-pro"
+    return wanted
+
+
+def _token_limit_key(provider: str, model: str) -> str:
+    """Newer OpenAI reasoning models require max_completion_tokens."""
+    if provider == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4")):
+        return "max_completion_tokens"
+    return "max_tokens"
+
+
 async def _complete_openai(provider, model, system, messages, max_tokens, on_usage, timeout) -> str:
     base = config.llm_base_url(provider)
     if not base:
         raise RuntimeError(f"No base URL configured for {provider}")
     headers = {"Content-Type": "application/json"}
     key = config.llm_api_key(provider)
+    if config.LLM_PROVIDERS[provider].get("needs_key") and not key:
+        raise RuntimeError(f"No API key configured for {provider}")
     if key:
         headers["Authorization"] = f"Bearer {key}"
+    resolved_model = _normalise_model(provider, model)
     payload = {
-        "model": model,
+        "model": resolved_model,
         "messages": [{"role": "system", "content": system}]
         + [{"role": m["role"], "content": m["content"]} for m in messages],
-        "max_tokens": max_tokens,
+        _token_limit_key(provider, resolved_model): max_tokens,
     }
     async with httpx.AsyncClient(timeout=timeout) as http:
         resp = await http.post(f"{base}/chat/completions", headers=headers, json=payload)
@@ -88,7 +108,9 @@ async def _complete_openai(provider, model, system, messages, max_tokens, on_usa
     usage = data.get("usage") or {}
     if on_usage:
         on_usage(usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
-    return (data["choices"][0]["message"]["content"] or "").strip()
+    choice = (data.get("choices") or [{}])[0]
+    message = choice.get("message") or {}
+    return (message.get("content") or "").strip()
 
 
 async def _complete_gemini(provider, model, system, messages, max_tokens, on_usage, timeout) -> str:

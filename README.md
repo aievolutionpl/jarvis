@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK onboarding, memory, skills, and developer automation.</strong>
+  <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK model connectors, persistent memory, installable skills, and developer automation.</strong>
 </p>
 
 <p align="center">
@@ -17,149 +17,79 @@
 
 > “Will do, sir.”
 
-[AI Evolution Labs](https://aievolutionlabs.io/) presents JARVIS: a local virtual assistant inspired by the cinematic Stark-style cockpit: a reactive orb, customizable Control Center widgets, a right-side command menu, voice/text loop, persistent memory, desktop awareness, task planning, and Claude Code orchestration. The project is designed for **bring-your-own-key** operation and includes a grouped connector catalog for required model keys plus optional voice, research, news, market, and private-agent providers.
-
 ---
 
-## Highlights
+## English overview
 
-- **Beautiful onboarding** — first launch opens a guided setup for API keys, skill packs, profile, language, personality, and launch readiness.
-- **Multi-provider API catalog** — save core and optional keys from the settings panel; no manual `.env` editing required.
-- **Voice-first assistant** — Web Speech API transcription, LLM response generation, and TTS playback.
-- **Cinematic visualization** — Three.js audio-reactive orb plus MARK XL-inspired HUD panels.
-- **Agent skills** — bundled productivity, developer, browser research, screen context, and voice skill packs with a path for task-specific downloadable skills.
-- **Developer automation** — can spawn Claude Code sessions, scan projects, open terminals, and use prompt templates.
-- **Personal operating layer** — calendar, mail, notes, tasks, memory, planning, and screen context.
-- **Windows-friendly setup path** — `start.ps1`, automatic current-user desktop shortcut creation, cross-platform provider/status metadata, and graceful macOS-only capability reporting.
+JARVIS is a local, voice-first operating layer for your computer. It combines a cinematic browser HUD, WebSocket voice loop, configurable LLM providers, text-to-speech, persistent SQLite memory, task and note management, a bundled skill catalog, screen/browser awareness, and Claude Code project orchestration.
 
----
+It is designed as **bring your own key** software: keys stay in your local `.env`, the settings panel exposes only supported connectors, and the runtime router can switch brains without restarting the server.
 
+### What JARVIS can do
 
-## What can JARVIS do?
+- Talk with a Stark-style assistant voice and a reactive Three.js orb.
+- Remember durable facts, preferences, decisions, projects, people, tasks, and notes.
+- Prioritize your day using calendar events, open tasks, and important memories.
+- Search or open websites, summarize pages, and send compact cards to the Control Center.
+- Read Apple Calendar/Mail/Notes on macOS and degrade gracefully on Windows/Linux.
+- Launch Claude Code in a project, ask it to inspect/fix/build, and track active dispatches.
+- Use installable business skills such as meeting summaries, email triage, SOP writing, invoices, proposals, support replies, SQL help, and deployment checklists.
+- Run executable skills that generate local artifacts under `data/artifacts/`.
 
-JARVIS is meant to be a personal assistant for everything: voice, text, files, local context, business operations, and developer automation. Example commands:
+### Supported connectors
 
-| Area | Example prompt | What happens |
-| --- | --- | --- |
-| Daily command | “Give me a mission brief for today.” | Combines calendar, open tasks, unread mail, and memory into priorities. |
-| Screen awareness | “Look at my screen and tell me what matters.” | Reads active windows/screenshots and summarizes relevant context. |
-| Research | “Research AI voice assistants for small businesses and cite sources.” | Uses connected research providers/browser tooling to prepare a source-aware brief. |
-| Business ops | “Create an invoice draft for Acme for 12 hours at $120/hour.” | Uses skill packs to generate structured business artifacts. |
-| Email | “Draft a sharp follow-up to yesterday’s client conversation.” | Produces a ready-to-send message while keeping mail access read-only by default. |
-| Planning | “Plan my next three hours around meetings and urgent tasks.” | Suggests time blocks, priorities, and optionally creates tasks/notes. |
-| Development | “Review this project and fix one obvious UI bug.” | Can launch Claude Code workflows, inspect projects, and coordinate code changes. |
-| Personal memory | “Remember that I prefer concise Polish responses for business.” | Stores a durable preference and uses it in future conversations. |
-| Local models | “Switch to Ollama for private offline chats.” | Routes chat through a local Ollama model when configured. |
-| Control Center | “Send a market snapshot to my control center.” | Adds a JARVIS-authored widget card for summaries, news, weather, time, statistics, markets, and alerts. |
-| Self-improvement | “Review JARVIS itself and suggest improvements.” | Uses project awareness to inspect its own codebase and propose changes. |
+#### Required / recommended
 
----
-## Built-in and planned skill packs
-
-| Skill pack | Status | What it enables |
-| --- | --- | --- |
-| Core Productivity | Bundled | Calendar, Mail, Notes, tasks, memory, and day planning |
-| Developer Agent | Bundled | Project scanning, Claude Code dispatch, terminal automation, prompt templates |
-| Browser Research | Bundled | Web browsing, research briefs, and source-aware summaries |
-| Screen Context | Bundled | Active window awareness and screenshot-based context |
-| Voice Studio | Optional | Fish Audio now, ElevenLabs-ready voice provider expansion |
-| Task Skill Downloader | Planned | Task-specific skills installed on demand for agent workflows |
-
-The skill catalog is exposed through `/api/skills` and rendered in the onboarding/settings UI, so future installers can attach directly to the same metadata.
-
----
-
-## Supported API connectors
-
-Settings now separates **Must / recommended** setup from optional connectors.
-
-### Must / recommended
-
-| Provider | Environment key | Purpose | Required? |
+| Provider | Environment key | Purpose | Notes |
 | --- | --- | --- | --- |
-| Anthropic Claude | `ANTHROPIC_API_KEY` | Recommended primary reasoning brain and tool-action planner | Must-have unless another chat provider or Ollama is selected |
-| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS voice | Recommended for voice |
-| Fish Voice ID | `FISH_VOICE_ID` | Voice identity for Fish Audio | Recommended with Fish Audio |
-| Ollama | _none_ (`OLLAMA_BASE_URL`) | Local models (Llama, Gemma 3, Qwen…) — fully offline | Optional replacement/companion for cloud chat |
+| Anthropic Claude | `ANTHROPIC_API_KEY` | Recommended default reasoning brain and action planner | Required unless another LLM or Ollama is selected |
+| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS voice | Recommended for voice mode |
+| Fish Voice ID | `FISH_VOICE_ID` | Fish Audio voice identity | Optional override |
+| Ollama | `OLLAMA_BASE_URL` | Local/offline OpenAI-compatible models | No API key required |
 
-### Optional connectors
+#### Optional supported connectors
 
-| Provider | Environment key | Purpose |
+| Provider | Environment key | Default model / role |
 | --- | --- | --- |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Premium/multilingual voices |
-| DeepSeek | `DEEPSEEK_API_KEY` | Optional coding/reasoning provider |
-| OpenAI | `OPENAI_API_KEY` | Optional multimodal/realtime/tool model provider |
-| Perplexity | `PERPLEXITY_API_KEY` | Optional source-grounded web research and news briefs |
-| Google AI | `GOOGLE_API_KEY` | Optional Gemini/Google ecosystem provider |
-| Groq | `GROQ_API_KEY` | Optional ultra-fast inference |
-| Hermes | `HERMES_API_KEY` | Optional private Hermes-compatible agent backend |
+| OpenAI | `OPENAI_API_KEY` | GPT-5 family, default `gpt-5.2`; spoken aliases like “GPT 5-5” are normalized to the configured GPT-5 default instead of sending unsupported IDs |
+| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek V4 Pro, default `deepseek-v4-pro`, with `deepseek-v4-flash` as the fast option |
+| Google AI | `GOOGLE_API_KEY` | Gemini models |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voice provider |
 
-> Keys are stored locally in `.env`. Do not commit your real `.env` file.
+Perplexity, Groq, and Hermes were removed from the connector catalog. Hermes is not exposed because there is no Hermes API connector in this project, and unsupported providers are intentionally absent from onboarding/settings.
 
-### Switching the brain and the voice
+### How memory and skills work
 
-JARVIS now ships a runtime **provider router**. Open **Settings → Engine** to pick:
+- **Memory** lives in SQLite (`data/jarvis.db`) and stores facts, preferences, projects, people, decisions, tasks, and notes. Relevant memories are injected into every LLM call as private context.
+- **Skills** live in the same SQLite database and are seeded from `skills.py`. Enabled skills are injected into the system prompt as compact operating instructions.
+- **Executable skills** use `[ACTION:RUN_SKILL] slug ||| {json params}` to create artifacts that can be downloaded or previewed.
+- **Onboarding** asks about your name, role, goals, tools, and preferences, then recommends relevant skills automatically.
 
-- **Active Brain** — the conversational model. `anthropic` (default) plus `openai`,
-  `google` (Gemini), `deepseek`, `groq`, and `ollama` for local models. Selections
-  persist to `.env` (`JARVIS_LLM_PROVIDER`, `JARVIS_LLM_MODEL_*`) and take effect
-  without a restart. Claude still drives tool/action calls and intent classification,
-  so other brains chat well but may be weaker at running tools.
-- **Active Voice** — `fish_audio` (default) or `elevenlabs` (`JARVIS_TTS_PROVIDER`).
+### Quick start — Windows
 
-For local models, run `ollama serve`, pull a model (`ollama pull llama3.2` or
-`ollama pull gemma3`), and select **Ollama (local)** — the model list is fetched
-live from your Ollama server. (Note: Google's open model line is **Gemma 3**; the
-hosted **Gemini** API is available via the Google AI connector.)
+```powershell
+git clone https://github.com/your-org/jarvis.git
+cd jarvis
+.\start.ps1
+```
 
----
+The PowerShell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut named **JARVIS by AI Evolution Labs**, installs Python/frontend dependencies, and starts backend/frontend terminals.
 
+Open Chrome at <http://localhost:5173>. If Vite prints a different local URL, use the URL shown in the terminal.
 
-
-## Control Center widgets
-
-The right HUD is now a fully customizable **Control Center**. Users can:
-
-- pin or hide widgets with **Tune**;
-- keep activity and guarded actions visible;
-- ask JARVIS to add text summaries, important alerts, news, weather, local time, stats, market/giełda snapshots, or any custom brief;
-- use the right-side menu action **Send brief to Control Center** for an instant situational summary.
-
-Internally, JARVIS can push cards with `[ACTION:CONTROL_CENTER] title ||| body ||| category`, so future tools can stream richer widget data without changing the voice loop.
-
----
-## Personalization and language
-
-Open **Settings → User Preferences** and **Settings → Personality Lab** to make the assistant feel like your own:
-
-- **Menu language** — English and Polish UI labels are available now, with saved preference in `.env` as `JARVIS_UI_LANGUAGE`.
-- **Response language** — tell JARVIS to answer by default in English, Polish, Spanish, German, French, Italian, Portuguese, or Ukrainian via `JARVIS_RESPONSE_LANGUAGE`.
-- **Default personality** — the default is Stark-style JARVIS: elegant British butler, loyal, calm under pressure, concise, proactive, and dryly funny.
-- **Personality generator** — generate a custom personality brief from presets like Executive Operator, Supportive Coach, Senior Engineer, and Creative Director.
-- **Fine tuning** — adjust humor, formality, initiative, honorific, user name, and a free-form personality directive.
-
-The settings panel persists these fields to `.env` so the runtime prompt changes without hand-editing configuration files.
-
----
-## Requirements
-
-- Python 3.11+
-- Node.js 18+
-- Google Chrome for the Web Speech API
-- Anthropic API key for the main assistant brain
-- Optional voice/research/model keys listed above
-- macOS for Apple Calendar/Mail/Notes automation; Windows/Linux can run the web app and non-Apple capabilities, with Apple integrations reported as unavailable
-- Claude Code CLI for developer-agent workflows
-
----
-
-## Quick start
-
-### macOS / Linux
+### Quick start — macOS / Linux
 
 ```bash
 git clone https://github.com/your-org/jarvis.git
 cd jarvis
+./start.sh
+```
+
+The shell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut (`JARVIS.command` on macOS or `jarvis.desktop` on Linux), installs dependencies, and starts the backend plus frontend dev server.
+
+### Manual start
+
+```bash
 cp .env.example .env
 python -m pip install -r requirements.txt
 cd frontend && npm install && cd ..
@@ -173,70 +103,50 @@ cd frontend
 npm run dev
 ```
 
-Open Chrome at <http://localhost:5173>. The onboarding panel will guide you through keys and profile setup.
-
-### Windows PowerShell
-
-```powershell
-git clone https://github.com/your-org/jarvis.git
-cd jarvis
-.\start.ps1
-```
-
-Then open Chrome at <http://localhost:5173>. The launcher creates `.env` from `.env.example` when needed, installs a **JARVIS by AI Evolution Labs** shortcut on the current user desktop, and starts backend/frontend terminals.
-
----
-
-## Manual configuration
+### Manual configuration
 
 ```env
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
 FISH_API_KEY=your-fish-audio-api-key-here
 FISH_VOICE_ID=612b878b113047d9a770c069c8b4fdfe
 ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
 DEEPSEEK_API_KEY=
 OPENAI_API_KEY=
-PERPLEXITY_API_KEY=
 GOOGLE_API_KEY=
-GROQ_API_KEY=
-HERMES_API_KEY=
+JARVIS_LLM_PROVIDER=anthropic
+JARVIS_TTS_PROVIDER=fish_audio
+OLLAMA_BASE_URL=http://localhost:11434
+# JARVIS_LLM_MODEL_OPENAI=gpt-5.2
+# JARVIS_LLM_MODEL_DEEPSEEK=deepseek-v4-pro
 USER_NAME=Tony
 HONORIFIC=sir
-CALENDAR_ACCOUNTS=auto
 JARVIS_UI_LANGUAGE=en
 JARVIS_RESPONSE_LANGUAGE=en
-JARVIS_PERSONALITY_PRESET=stark
-JARVIS_PERSONALITY_BRIEF=Act like Stark-style JARVIS: elegant British butler energy, loyal, concise, calm under pressure, dryly funny, and proactive without being intrusive.
-JARVIS_HUMOR_LEVEL=balanced
-JARVIS_FORMALITY_LEVEL=butler
-JARVIS_PROACTIVE_MODE=smart
 ```
 
-You can also open settings with `,` and add keys from the UI.
+You can also press `,` in the app and configure everything from Settings.
 
----
-
-## Keyboard shortcuts
+### Keyboard shortcuts
 
 | Key | Action |
 | --- | --- |
-| `/` | Focus the command bar |
+| `/` | Focus command bar |
 | `M` | Mute / unmute microphone |
 | `Esc` | Stop speaking or close panels |
 | `L` | Clear activity log |
-| `,` | Open settings and onboarding |
+| `,` | Open settings/onboarding |
 | `?` | Toggle shortcuts overlay |
 
----
-
-## Architecture
+### Architecture
 
 ```text
 Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS provider → WebSocket → Speaker
                                               │
-                                              ├─ Skill catalog + settings onboarding
+                                              ├─ Memory / Tasks / Notes / Onboarding
+                                              ├─ Enabled Skills + executable artifacts
                                               ├─ Claude Code / developer agent dispatch
-                                              ├─ Calendar / Mail / Notes / Tasks / Memory
+                                              ├─ Calendar / Mail / Notes integrations
                                               └─ Browser, screen context, planning, and templates
 ```
 
@@ -245,54 +155,113 @@ Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS
 | Backend | FastAPI + Python |
 | Frontend | Vite + TypeScript + Three.js |
 | Transport | WebSocket JSON messages + binary audio |
-| LLM | Anthropic primary, optional provider keys ready for expansion |
-| TTS | Fish Audio primary, ElevenLabs-ready configuration |
-| Local state | SQLite memory/tasks/notes |
-| OS bridge | AppleScript on macOS, graceful platform status elsewhere |
+| LLM | Anthropic default; OpenAI, DeepSeek, Google, Ollama optional |
+| TTS | Fish Audio default; ElevenLabs optional |
+| Local state | SQLite memory/tasks/notes/skills |
+| OS bridge | AppleScript on macOS, graceful status elsewhere |
 
----
-
-## Key files
-
-| File | Purpose |
-| --- | --- |
-| `server.py` | Main FastAPI/WebSocket server and settings endpoints |
-| `integrations.py` | API provider and skill-pack catalog |
-| `frontend/src/settings.ts` | Onboarding/settings UI logic |
-| `frontend/src/style.css` | Cinematic HUD, onboarding, provider, and skill styling |
-| `frontend/src/orb.ts` | Three.js orb visualization |
-| `.env.example` | Complete BYOK configuration template |
-| `start.ps1` | Windows-friendly launcher |
-| `templates/prompts/` | Agent prompt templates |
-
----
-
-## Development checks
+### Development checks
 
 ```bash
-python -m compileall server.py integrations.py
+python -m compileall server.py providers integrations.py memory.py skills.py
+python tests/test_providers.py
 cd frontend && npm run build
 ```
 
+### Key files
+
+| File | Purpose |
+| --- | --- |
+| `server.py` | Main FastAPI/WebSocket server, settings APIs, voice/action loop |
+| `providers/config.py` | Single source of truth for LLM/TTS provider metadata |
+| `providers/llm.py` | Unified completion router for Anthropic, OpenAI-compatible providers, Gemini, and Ollama |
+| `integrations.py` | Onboarding/settings connector catalog |
+| `memory.py` | SQLite memory, tasks, notes, FTS search, and prompt context |
+| `skills.py` | Skill catalog, enable/disable logic, prompt injection, executable handlers |
+| `frontend/src/settings.ts` | Onboarding/settings UI logic |
+| `.env.example` | Safe BYOK configuration template |
+| `start.ps1` / `start.sh` | Windows and macOS/Linux launchers with shortcut installation |
+| `CLAUDE.md` | Instructions for future coding agents working in this repo |
+
 ---
 
-## Security notes
+## Polski opis
 
-- Keep real secrets in `.env` only.
-- The settings API accepts only known environment keys from the provider catalog and personalization fields.
-- Mail integration is read-only by design.
-- The conversational brain is routed live to the selected provider; Claude remains the orchestrator for tool/action calls when configured.
+JARVIS to lokalny, głosowy asystent dla komputera: kinowy HUD w przeglądarce, reaktywna kula Three.js, WebSocket voice loop, wybieralne modele LLM, synteza mowy, trwała pamięć SQLite, zadania, notatki, katalog umiejętności, świadomość ekranu/przeglądarki oraz integracja z Claude Code do pracy nad projektami.
 
----
+Projekt działa w modelu **bring your own key**: klucze zostają lokalnie w `.env`, ustawienia pokazują tylko wspierane connectory, a aktywny model można zmienić z panelu bez restartu serwera.
 
-## Roadmap
+### Co JARVIS potrafi
 
-- ~~Provider execution router for DeepSeek, OpenAI, Google, Groq, and Ollama.~~ ✅ Shipped (Perplexity/Hermes still config-only).
-- ~~ElevenLabs runtime TTS selection in addition to saved configuration.~~ ✅ Shipped.
-- Cross-provider tool-use parity so non-Claude brains can drive `[ACTION:X]` reliably.
-- Downloadable skill marketplace with task-triggered installation.
-- Windows-native desktop integrations to complement the macOS AppleScript bridge.
-- ~~Hero artwork for the GitHub README.~~ ✅ Shipped — additional in-app screenshots/demo clips still planned.
+- Rozmawiać głosem w stylu Stark/JARVIS i animować audio-reaktywną kulę.
+- Zapamiętywać fakty, preferencje, decyzje, projekty, osoby, zadania i notatki.
+- Planować dzień na podstawie kalendarza, otwartych zadań i ważnych wspomnień.
+- Otwierać strony, robić research przez przeglądarkę i wysyłać krótkie karty do Control Center.
+- Czytać Apple Calendar/Mail/Notes na macOS; na Windows/Linux pokazuje status niedostępnych integracji bez wysypywania aplikacji.
+- Uruchamiać Claude Code w projekcie, prosić go o analizę/poprawki/build i śledzić aktywne dispatch’e.
+- Korzystać z umiejętności biznesowych: podsumowania spotkań, triage maili, SOP, faktury, oferty, odpowiedzi supportu, SQL, checklisty deploymentu i inne.
+- Generować lokalne artefakty z umiejętności wykonywalnych w `data/artifacts/`.
+
+### Connectory API
+
+#### Wymagane / rekomendowane
+
+| Provider | Klucz środowiskowy | Zastosowanie | Uwagi |
+| --- | --- | --- | --- |
+| Anthropic Claude | `ANTHROPIC_API_KEY` | Domyślny mózg i planner akcji | Wymagany, chyba że wybierzesz inny LLM lub Ollamę |
+| Fish Audio | `FISH_API_KEY` | Domyślny głos JARVIS-a | Rekomendowany do trybu głosowego |
+| Fish Voice ID | `FISH_VOICE_ID` | Identyfikator głosu Fish Audio | Opcjonalna podmiana |
+| Ollama | `OLLAMA_BASE_URL` | Lokalne/offline modele kompatybilne z OpenAI | Bez klucza API |
+
+#### Opcjonalne wspierane connectory
+
+| Provider | Klucz środowiskowy | Model / rola |
+| --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | Rodzina GPT-5, domyślnie `gpt-5.2`; aliasy mówione typu „GPT 5-5” są normalizowane do skonfigurowanego domyślnego GPT-5 |
+| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek V4 Pro, domyślnie `deepseek-v4-pro`, szybka opcja `deepseek-v4-flash` |
+| Google AI | `GOOGLE_API_KEY` | Modele Gemini |
+| ElevenLabs | `ELEVENLABS_API_KEY` | Opcjonalny premium/multilingual TTS |
+
+Perplexity, Groq i Hermes zostały usunięte z katalogu connectorów. Hermes nie jest wystawiany, bo projekt nie posiada realnego Hermes API connectora.
+
+### Instalacja i start
+
+Windows:
+
+```powershell
+.\start.ps1
+```
+
+macOS/Linux:
+
+```bash
+./start.sh
+```
+
+Launchery tworzą `.env` z `.env.example`, instalują zależności, dodają skrót na pulpit i uruchamiają backend oraz frontend. Potem otwórz Chrome na <http://localhost:5173>.
+
+### Jak odpalić ręcznie
+
+```bash
+cp .env.example .env
+python -m pip install -r requirements.txt
+cd frontend && npm install && cd ..
+python server.py
+```
+
+Drugi terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Jak myśleć o systemie
+
+- **Pamięć** to prywatny kontekst lokalny: JARVIS używa jej, żeby nie zaczynać od zera w każdej rozmowie.
+- **Skille** to instrukcje operacyjne: po włączeniu uczą JARVIS-a konkretnego sposobu wykonania zadania.
+- **Connectory** to tylko realnie obsługiwane integracje: Anthropic/OpenAI/DeepSeek/Google/Ollama dla modeli oraz Fish/ElevenLabs dla głosu.
+- **Claude Code dispatch** to tryb pracy nad repozytoriami: JARVIS potrafi otworzyć projekt i zlecić agentowi konkretne zadanie.
 
 ---
 

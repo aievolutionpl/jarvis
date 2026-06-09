@@ -6,7 +6,7 @@ without a server restart.
 
 - ``providers.config`` — provider metadata + live env readers.
 - ``providers.llm``    — unified ``complete()`` across Anthropic, OpenAI-compatible
-  (OpenAI / Ollama / DeepSeek / Groq) and Google Gemini.
+  (OpenAI / Ollama / DeepSeek) and Google Gemini.
 - ``providers.tts``    — unified ``synthesize()`` across Fish Audio and ElevenLabs.
 """
 

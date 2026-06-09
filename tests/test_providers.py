@@ -76,13 +76,13 @@ def test_invalid_provider_falls_back():
 
 
 def test_model_override_per_provider():
-    os.environ["JARVIS_LLM_MODEL_OPENAI"] = "gpt-4o"
+    os.environ["JARVIS_LLM_MODEL_OPENAI"] = "gpt-5"
     try:
-        assert config.active_llm_model("openai") == "gpt-4o"
+        assert config.active_llm_model("openai") == "gpt-5"
     finally:
         os.environ.pop("JARVIS_LLM_MODEL_OPENAI", None)
     # falls back to default when unset
-    assert config.active_llm_model("openai") == "gpt-4o-mini"
+    assert config.active_llm_model("openai") == "gpt-5.2"
 
 
 def test_extra_env_keys_cover_selectors():
@@ -114,7 +114,7 @@ def test_openai_compatible_request_shape():
     os.environ["OPENAI_API_KEY"] = "sk-test"
     seen = {}
     text = asyncio.run(llm.complete(
-        provider="openai", model="gpt-4o-mini",
+        provider="openai", model="gpt-5-mini",
         system="SYS", messages=[{"role": "user", "content": "hi"}],
         max_tokens=42, on_usage=lambda i, o: seen.update(i=i, o=o),
     ))
@@ -122,12 +122,29 @@ def test_openai_compatible_request_shape():
     cap = _FakeClient.captured
     assert cap["url"] == "https://api.openai.com/v1/chat/completions"
     assert cap["headers"]["Authorization"] == "Bearer sk-test"
-    assert cap["json"]["model"] == "gpt-4o-mini"
-    assert cap["json"]["max_tokens"] == 42
+    assert cap["json"]["model"] == "gpt-5-mini"
+    assert cap["json"]["max_completion_tokens"] == 42
     assert cap["json"]["messages"][0] == {"role": "system", "content": "SYS"}
     assert cap["json"]["messages"][1] == {"role": "user", "content": "hi"}
     assert text == "hello sir"          # trimmed
     assert seen == {"i": 3, "o": 5}     # usage propagated
+
+
+def test_deepseek_v4_pro_request_shape():
+    _patch(llm)
+    _FakeClient.response = _FakeResp({"choices": [{"message": {"content": "deep ok"}}]})
+    os.environ["DEEPSEEK_API_KEY"] = "sk-deep"
+    text = asyncio.run(llm.complete(
+        provider="deepseek", model="deepseek v4 pro",
+        system="S", messages=[{"role": "user", "content": "x"}], max_tokens=10,
+    ))
+    os.environ.pop("DEEPSEEK_API_KEY", None)
+    cap = _FakeClient.captured
+    assert cap["url"] == "https://api.deepseek.com/chat/completions"
+    assert cap["headers"]["Authorization"] == "Bearer sk-deep"
+    assert cap["json"]["model"] == "deepseek-v4-pro"
+    assert cap["json"]["max_tokens"] == 10
+    assert text == "deep ok"
 
 
 def test_ollama_uses_base_url_and_no_auth():
@@ -175,7 +192,7 @@ def test_provider_failure_returns_fallback():
     llm.httpx.AsyncClient = _Boom
     os.environ["OPENAI_API_KEY"] = "sk-test"
     text = asyncio.run(llm.complete(
-        provider="openai", model="gpt-4o-mini",
+        provider="openai", model="gpt-5-mini",
         system="S", messages=[{"role": "user", "content": "x"}], max_tokens=10,
     ))
     os.environ.pop("OPENAI_API_KEY", None)

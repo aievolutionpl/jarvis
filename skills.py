@@ -367,7 +367,12 @@ def enabled_skills_prompt(max_skills: int = 25) -> str:
     enabled = list_skills(enabled_only=True)[:max_skills]
     if not enabled:
         return ""
-    lines = ["ACTIVE SKILLS (use these capabilities when the situation fits):"]
+    lines = [
+        "ACTIVE SKILLS (load these instructions as working memory when the situation fits):",
+        "- Skill protocol: pick the smallest relevant enabled skill, follow its concrete instructions, and mention the skill only when useful to the user.",
+        "- Executable skills produce files via [ACTION:RUN_SKILL] slug ||| {json params}; prompt-only skills shape the response directly.",
+        "- If no enabled skill fits but an available skill would help, briefly suggest enabling it instead of pretending it is active.",
+    ]
     for s in enabled:
         tag = " [executable — use [ACTION:RUN_SKILL] " + s["slug"] + "]" if s["executable"] else ""
         lines.append(f"- {s['name']} — when {s['when_to_use']}: {s['instructions']}{tag}")

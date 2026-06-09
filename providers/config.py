@@ -16,7 +16,7 @@ from integrations import is_configured
 # ---------------------------------------------------------------------------
 # kind:
 #   "anthropic" — native Anthropic SDK (default brain, drives actions/tools)
-#   "openai"    — OpenAI-compatible /chat/completions (OpenAI, Ollama, DeepSeek, Groq)
+#   "openai"    — OpenAI-compatible /chat/completions (OpenAI, Ollama, DeepSeek)
 #   "gemini"    — Google Generative Language API
 LLM_PROVIDERS: dict[str, dict] = {
     "anthropic": {
@@ -33,8 +33,11 @@ LLM_PROVIDERS: dict[str, dict] = {
         "kind": "openai",
         "env_key": "OPENAI_API_KEY",
         "needs_key": True,
-        "default_model": "gpt-4o-mini",
-        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
+        # Official API model IDs verified against OpenAI docs. If users say
+        # "GPT 5-5"/"GPT-5.5", keep them on the latest configured GPT-5 family
+        # model rather than sending an unsupported alias to the API.
+        "default_model": "gpt-5.2",
+        "models": ["gpt-5.2", "gpt-5.2-pro", "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4.1"],
         "base_url": "https://api.openai.com/v1",
     },
     "ollama": {
@@ -60,18 +63,12 @@ LLM_PROVIDERS: dict[str, dict] = {
         "kind": "openai",
         "env_key": "DEEPSEEK_API_KEY",
         "needs_key": True,
-        "default_model": "deepseek-chat",
-        "models": ["deepseek-chat", "deepseek-reasoner"],
-        "base_url": "https://api.deepseek.com/v1",
-    },
-    "groq": {
-        "label": "Groq",
-        "kind": "openai",
-        "env_key": "GROQ_API_KEY",
-        "needs_key": True,
-        "default_model": "llama-3.3-70b-versatile",
-        "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b"],
-        "base_url": "https://api.groq.com/openai/v1",
+        # DeepSeek V4 Pro is the premium/default model; v4-flash is the fast
+        # fallback. Legacy chat/reasoner aliases are kept selectable until their
+        # published retirement window for users with older configs.
+        "default_model": "deepseek-v4-pro",
+        "models": ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"],
+        "base_url": "https://api.deepseek.com",
     },
 }
 
