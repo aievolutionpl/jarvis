@@ -11,14 +11,14 @@ Your job as a coding agent is to keep the system simple to run, safe with secret
 1. Open PowerShell in the repository root.
 2. Run `.\start.ps1`.
 3. Let the launcher copy `.env.example` to `.env`, install dependencies, install the desktop shortcut, and start backend/frontend terminals.
-4. Open Chrome at `http://localhost:5173` or the Vite URL printed in the terminal.
+4. Open Chrome at `http://localhost:5180` or the Vite URL printed in the terminal.
 5. Add API keys in Settings → Required APIs / Model & Voice.
 
 ### macOS / Linux
 1. Open a terminal in the repository root.
 2. Run `./start.sh`.
 3. Let the launcher copy `.env.example` to `.env`, install dependencies, install the desktop shortcut, and start backend/frontend processes.
-4. Open Chrome at `http://localhost:5173` or the Vite URL printed in the terminal.
+4. Open Chrome at `http://localhost:5180` or the Vite URL printed in the terminal.
 5. Add API keys in Settings.
 
 ### Manual start

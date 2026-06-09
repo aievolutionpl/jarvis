@@ -515,12 +515,26 @@ class ClaudeTaskManager:
         start = time.time()
         timeout = 600  # 10 minutes
 
+        stall_after = 60  # seconds without output growth before assuming completion
         while time.time() - start < timeout:
             await asyncio.sleep(5)
-            if output_file.exists():
-                content = output_file.read_text()
-                if "--- JARVIS TASK COMPLETE ---" in content or len(content) > 100:
-                    task.result = content.replace("--- JARVIS TASK COMPLETE ---", "").strip()
+            if not output_file.exists():
+                continue
+            content = output_file.read_text()
+            if "--- JARVIS TASK COMPLETE ---" in content:
+                task.result = content.replace("--- JARVIS TASK COMPLETE ---", "").strip()
+                task.status = "completed"
+                break
+            # Fallback: the marker can be lost (terminal closed, tee interrupted).
+            # If there is real output and the file has stopped growing, treat the
+            # task as finished rather than waiting out the full timeout.
+            if content.strip():
+                try:
+                    mtime = output_file.stat().st_mtime
+                except OSError:
+                    continue
+                if time.time() - mtime > stall_after:
+                    task.result = content.strip()
                     task.status = "completed"
                     break
         else:
@@ -1268,8 +1282,9 @@ async def generate_response(
     # may be weaker at the [ACTION:X] protocol (surfaced as a note in the UI).
     provider = provider_config.active_llm_provider()
     model = provider_config.active_llm_model(provider)
-    if provider == "anthropic":
-        model = "claude-haiku-4-5-20251001"  # fixed low-latency model for the voice loop
+    if provider == "anthropic" and not os.getenv(provider_config.model_env_key("anthropic"), "").strip():
+        # Low-latency default for the voice loop; an explicit user override wins.
+        model = "claude-haiku-4-5-20251001"
     return await provider_llm.complete(
         provider=provider,
         model=model,
@@ -1340,7 +1355,9 @@ def _get_usage_for_period(seconds: float | None = None) -> dict:
 
 
 def _cost_from_tokens(input_t: int, output_t: int) -> float:
-    return (input_t / 1_000_000) * 0.80 + (output_t / 1_000_000) * 4.00
+    # Claude Haiku 4.5 list pricing ($1/MTok in, $5/MTok out); used as an
+    # approximation when a non-Anthropic brain is active.
+    return (input_t / 1_000_000) * 1.00 + (output_t / 1_000_000) * 5.00
 
 
 def track_usage(response):
