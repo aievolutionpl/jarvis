@@ -128,6 +128,7 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("data-entry", "Structured Data Entry", "Admin & Scheduling", "entering or structuring data", "Convert the source into clean, consistently formatted rows/fields, validate types, and flag anything ambiguous rather than guessing."),
     ("appointment-reminders", "Appointment Reminders", "Admin & Scheduling", "setting up appointment reminders", "Draft reminder messages with the key details and timing, and recommend a reminder cadence that reduces no-shows."),
     ("todo-prioritization", "To-do Prioritization", "Admin & Scheduling", "prioritising a to-do list", "Rank by impact and urgency, identify the one thing that matters most today, and suggest what to drop or defer."),
+    ("unit-converter", "Unit Converter", "Admin & Scheduling", "converting units of length, weight, temperature, or data", "Convert between units precisely using the executable converter and state the result plainly with sensible rounding."),
 
     # --- Legal & Compliance ---
     ("contract-review", "Contract Review", "Legal & Compliance", "reviewing a contract", "Summarise key terms, flag risky or unusual clauses, and list questions to raise. Always recommend a qualified lawyer for anything material."),
@@ -156,6 +157,19 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("release-notes", "Release Notes", "Product & Project", "writing release notes", "Group by new / improved / fixed, write user-facing benefits not internal jargon, and lead with the highlight."),
     ("competitive-feature", "Feature Comparison", "Product & Project", "comparing features against competitors", "Build a feature matrix, mark parity/gap/advantage, and conclude with the differentiation worth investing in."),
 
+    # --- Personal Assistant ---
+    ("daily-brief", "Daily Brief", "Personal Assistant", "starting the day or asking what's on the plate", "Pull together today's date, open tasks by priority, and anything time-sensitive into one tight morning brief. Use the executable generator to save a file."),
+    ("weekly-review", "Weekly Review", "Personal Assistant", "reviewing the week or planning the next one", "Walk through wins, misses, lessons, and open loops, then set the top three priorities for next week. Keep it honest and forward-looking."),
+    ("focus-sprint", "Focus Sprint Planner", "Personal Assistant", "planning a deep-work or pomodoro session", "Break the goal into 25-50 minute sprints with one concrete outcome each, schedule short breaks, and name the single distraction to eliminate."),
+    ("habit-coach", "Habit Coach", "Personal Assistant", "building or breaking a habit", "Anchor the new habit to an existing routine, start embarrassingly small, define the trigger-action-reward loop, and suggest a simple streak tracker."),
+    ("reading-list", "Reading List", "Personal Assistant", "saving an article, book, or link to read later", "Capture title, link, and a one-line reason it matters, then keep the list prioritised. Use the executable generator to append to the saved list."),
+    ("meal-planner", "Meal Planner", "Personal Assistant", "planning meals for the week", "Plan simple meals around the user's preferences and constraints, build one consolidated grocery list, and reuse ingredients across meals to cut waste."),
+    ("workout-plan", "Workout Plan", "Personal Assistant", "planning exercise or training", "Build a realistic weekly plan around available time and equipment, balance intensity with recovery, and start below what feels doable."),
+    ("travel-packing", "Travel Packing List", "Personal Assistant", "packing for a trip", "Build a checklist from trip length, weather, and activities; group by category, flag documents and chargers first, and keep it carry-on minded."),
+    ("learning-plan", "Learning Plan", "Personal Assistant", "learning a new skill or topic", "Define the target competence, sequence resources from fundamentals to practice projects, and set a weekly cadence with a visible milestone."),
+    ("gift-ideas", "Gift Ideas", "Personal Assistant", "choosing a gift for someone", "Ask for the person's interests, the occasion, and budget, then suggest a shortlist from thoughtful to practical with a one-line why for each."),
+    ("decision-helper", "Decision Helper", "Personal Assistant", "weighing a decision or trade-off", "Lay out the options against the criteria that actually matter, score them quickly, name the reversible vs irreversible parts, and recommend one with the reasoning."),
+
     # --- IT & Dev ---
     ("code-review-helper", "Code Review Helper", "IT & Dev", "reviewing a code change", "Check correctness, edge cases, readability, and reuse. Lead with the highest-impact issues; suggest concrete fixes, not just problems."),
     ("api-documentation", "API Documentation", "IT & Dev", "documenting an API", "Document each endpoint: purpose, method/path, params, request/response examples, and errors. Make it copy-paste runnable."),
@@ -163,6 +177,8 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
     ("deployment-checklist", "Deployment Checklist", "IT & Dev", "preparing a deployment", "Produce a pre/deploy/post checklist covering backups, migrations, rollback, monitoring, and smoke tests."),
     ("database-query", "Database Query", "IT & Dev", "writing a SQL or database query", "Write the exact query, explain the logic, and note performance/index considerations. Prefer safe, readable SQL."),
     ("automation-script", "Automation Script", "IT & Dev", "drafting an automation script", "Write a small, robust script with comments and error handling, and explain how to run it. Keep dependencies minimal."),
+    ("password-generator", "Password Generator", "IT & Dev", "generating a strong password or passphrase", "Generate a cryptographically random password of the requested length and character mix. Use the executable generator; never reuse or invent passwords by hand."),
+    ("markdown-to-html", "Markdown to HTML", "IT & Dev", "converting markdown into a shareable HTML page", "Convert the markdown into a clean dark-theme HTML page. Use the executable generator to save a previewable file."),
 
     # --- Communications ---
     ("meeting-summary", "Meeting Summary", "Communications", "summarising a meeting or call", "Capture decisions, action items with owners, and open questions in a tight summary. Lead with what changed and what's next."),
@@ -173,12 +189,17 @@ _CATALOG: list[tuple[str, str, str, str, str]] = [
 # fmt: on
 
 # Slugs whose enabling injects an explicit note that an executable generator exists.
-EXECUTABLE_SLUGS = {"invoice-creation", "sop-writing", "meeting-agenda", "email-newsletter", "proposal-writing", "meeting-minutes", "expense-tracking"}
+EXECUTABLE_SLUGS = {
+    "invoice-creation", "sop-writing", "meeting-agenda", "email-newsletter",
+    "proposal-writing", "meeting-minutes", "expense-tracking",
+    "daily-brief", "reading-list", "password-generator", "unit-converter", "markdown-to-html",
+}
 
 # Default skills enabled on a fresh install (broadly useful for most users).
 DEFAULT_ENABLED = {
     "meeting-summary", "email-triage", "todo-prioritization",
     "support-response", "blog-writing", "calendar-scheduling",
+    "daily-brief",
 }
 
 
@@ -577,6 +598,174 @@ def _run_expense_tracking(params: dict) -> dict:
     path = _save_artifact(f"expenses_{time.strftime('%Y%m%d')}.csv", content)
     return {"summary": f"Expense log with {len(expenses)} item(s), total {total:.2f}", "path": str(path), "content": content}
 
+def _run_daily_brief(params: dict) -> dict:
+    from datetime import datetime
+    import memory
+    now = datetime.now()
+    tasks = memory.get_open_tasks()
+    lines = [f"# Daily Brief — {now.strftime('%A, %B %d, %Y')}", ""]
+    focus = params.get("focus") or params.get("description", "")
+    if focus:
+        lines += [f"Focus: {focus}", ""]
+    lines.append("## Open Tasks")
+    if tasks:
+        for t in tasks[:15]:
+            due = f" — due {t['due_date']}" if t.get("due_date") else ""
+            lines.append(f"- [{t.get('priority', 'medium')}] {t.get('title', '')}{due}")
+    else:
+        lines.append("- Nothing on the docket. A rare luxury, sir.")
+    lines += ["", "## Top Three", "1. ", "2. ", "3. ", "",
+              "## Notes", params.get("notes", "")]
+    content = "\n".join(lines)
+    path = _save_artifact(f"daily_brief_{now.strftime('%Y%m%d')}.md", content)
+    open_count = len(tasks)
+    return {"summary": f"Daily brief for {now.strftime('%A')} with {open_count} open task(s)", "path": str(path), "content": content}
+
+
+def _run_password(params: dict) -> dict:
+    import secrets
+    import string
+    length = max(8, min(128, int(params.get("length", 20) or 20)))
+    charset = string.ascii_letters + string.digits
+    if str(params.get("symbols", "true")).lower() not in ("0", "false", "no"):
+        charset += "!@#$%^&*()-_=+[]{}"
+    pwd = "".join(secrets.choice(charset) for _ in range(length))
+    # Deliberately no artifact file — secrets don't belong on disk.
+    return {"summary": f"Generated a {length}-character password", "content": pwd}
+
+
+_UNIT_FACTORS = {
+    # canonical: meters, grams, bytes
+    "mm": ("length", 0.001), "cm": ("length", 0.01), "m": ("length", 1.0), "km": ("length", 1000.0),
+    "in": ("length", 0.0254), "ft": ("length", 0.3048), "yd": ("length", 0.9144), "mi": ("length", 1609.344),
+    "mg": ("mass", 0.001), "g": ("mass", 1.0), "kg": ("mass", 1000.0), "oz": ("mass", 28.349523125),
+    "lb": ("mass", 453.59237), "st": ("mass", 6350.29318),
+    "b": ("data", 1.0), "kb": ("data", 1024.0), "mb": ("data", 1024.0 ** 2),
+    "gb": ("data", 1024.0 ** 3), "tb": ("data", 1024.0 ** 4),
+}
+
+_UNIT_ALIASES = {
+    "millimeter": "mm", "millimeters": "mm", "centimeter": "cm", "centimeters": "cm",
+    "meter": "m", "meters": "m", "kilometer": "km", "kilometers": "km",
+    "inch": "in", "inches": "in", "foot": "ft", "feet": "ft", "yard": "yd", "yards": "yd",
+    "mile": "mi", "miles": "mi", "milligram": "mg", "milligrams": "mg",
+    "gram": "g", "grams": "g", "kilogram": "kg", "kilograms": "kg",
+    "ounce": "oz", "ounces": "oz", "pound": "lb", "pounds": "lb", "lbs": "lb",
+    "stone": "st", "bytes": "b", "byte": "b",
+    "kilobyte": "kb", "kilobytes": "kb", "megabyte": "mb", "megabytes": "mb",
+    "gigabyte": "gb", "gigabytes": "gb", "terabyte": "tb", "terabytes": "tb",
+    "c": "celsius", "f": "fahrenheit", "k": "kelvin",
+}
+
+
+def _run_unit_convert(params: dict) -> dict:
+    raw_value = params.get("value", params.get("amount"))
+    src = str(params.get("from", "")).strip().lower()
+    dst = str(params.get("to", "")).strip().lower()
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        return {"error": "I need a numeric value to convert, e.g. {\"value\": 5, \"from\": \"mi\", \"to\": \"km\"}."}
+    src = _UNIT_ALIASES.get(src, src)
+    dst = _UNIT_ALIASES.get(dst, dst)
+
+    temps = {"celsius", "fahrenheit", "kelvin"}
+    if src in temps and dst in temps:
+        celsius = {"celsius": value, "fahrenheit": (value - 32) * 5 / 9, "kelvin": value - 273.15}[src]
+        result = {"celsius": celsius, "fahrenheit": celsius * 9 / 5 + 32, "kelvin": celsius + 273.15}[dst]
+    else:
+        s, d = _UNIT_FACTORS.get(src), _UNIT_FACTORS.get(dst)
+        if not s or not d:
+            return {"error": f"I don't know how to convert '{src}' to '{dst}', sir."}
+        if s[0] != d[0]:
+            return {"error": f"Can't convert {s[0]} to {d[0]}, sir — different kinds of quantity."}
+        result = value * s[1] / d[1]
+    rounded = round(result, 6)
+    answer = f"{value:g} {src} = {rounded:g} {dst}"
+    return {"summary": answer, "content": answer}
+
+
+def _md_inline(text: str) -> str:
+    import re
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
+    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    text = re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', text)
+    return text
+
+
+def _run_md_to_html(params: dict) -> dict:
+    import html as html_mod
+    source = params.get("markdown") or params.get("content") or params.get("description", "")
+    if not source.strip():
+        return {"error": "I need some markdown to convert, sir."}
+    title = params.get("title", "Document")
+    body: list[str] = []
+    in_list = in_code = False
+    for line in source.splitlines():
+        if line.strip().startswith("```"):
+            if in_code:
+                body.append("</pre>")
+            else:
+                body.append("<pre>")
+            in_code = not in_code
+            continue
+        if in_code:
+            body.append(html_mod.escape(line))
+            continue
+        escaped = _md_inline(html_mod.escape(line))
+        stripped = escaped.strip()
+        if stripped.startswith(("- ", "* ")):
+            if not in_list:
+                body.append("<ul>")
+                in_list = True
+            body.append(f"<li>{stripped[2:]}</li>")
+            continue
+        if in_list:
+            body.append("</ul>")
+            in_list = False
+        if stripped.startswith("#"):
+            level = min(6, len(stripped) - len(stripped.lstrip("#")))
+            body.append(f"<h{level}>{stripped[level:].strip()}</h{level}>")
+        elif stripped:
+            body.append(f"<p>{stripped}</p>")
+    if in_list:
+        body.append("</ul>")
+    if in_code:
+        body.append("</pre>")
+    content = (
+        "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+        f"<title>{html_mod.escape(title)}</title>\n"
+        "<style>body{background:#0a0e14;color:#dbe4ee;font-family:system-ui,sans-serif;"
+        "max-width:760px;margin:3rem auto;padding:0 1rem;line-height:1.6}"
+        "a{color:#00d4ff}code,pre{background:#11161f;border-radius:4px;padding:2px 6px}"
+        "pre{padding:12px;overflow-x:auto}h1,h2,h3{color:#fff}</style>\n</head>\n<body>\n"
+        + "\n".join(body) + "\n</body>\n</html>\n"
+    )
+    path = _save_artifact(f"{title}.html", content)
+    return {"summary": f"Converted '{title}' to a dark-theme HTML page", "path": str(path), "content": content}
+
+
+def _run_reading_list(params: dict) -> dict:
+    title = params.get("title") or params.get("description", "Untitled")
+    url = params.get("url", "")
+    note = params.get("note", "")
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    path = ARTIFACTS_DIR / "reading_list.md"
+    if not path.exists():
+        path.write_text("# Reading List\n\n", encoding="utf-8")
+    entry = f"- [{time.strftime('%Y-%m-%d')}] {title}"
+    if url:
+        entry += f" — {url}"
+    if note:
+        entry += f" ({note})"
+    with path.open("a", encoding="utf-8") as f:
+        f.write(entry + "\n")
+    content = path.read_text(encoding="utf-8")
+    count = sum(1 for line in content.splitlines() if line.startswith("- "))
+    return {"summary": f"Added '{title}' to the reading list ({count} item(s) saved)", "path": str(path), "content": content}
+
+
 EXECUTABLE_HANDLERS = {
     "invoice-creation": _run_invoice,
     "sop-writing": _run_sop,
@@ -585,6 +774,11 @@ EXECUTABLE_HANDLERS = {
     "proposal-writing": _run_proposal,
     "meeting-minutes": _run_meeting_minutes,
     "expense-tracking": _run_expense_tracking,
+    "daily-brief": _run_daily_brief,
+    "password-generator": _run_password,
+    "unit-converter": _run_unit_convert,
+    "markdown-to-html": _run_md_to_html,
+    "reading-list": _run_reading_list,
 }
 
 
