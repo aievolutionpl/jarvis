@@ -33,6 +33,84 @@ const dropZone = document.getElementById("drop-zone")!;
 const quickActions = document.getElementById("quick-actions")!;
 const artifactList = document.getElementById("artifact-list")!;
 const pendingActions = document.getElementById("pending-actions")!;
+const widgetGrid = document.getElementById("widget-grid")!;
+const jarvisBriefs = document.getElementById("jarvis-briefs")!;
+const btnCustomizeWidgets = document.getElementById("btn-customize-widgets")!;
+
+type WidgetId = "jarvis" | "news" | "weather" | "markets" | "activity" | "guard";
+const DEFAULT_WIDGETS: WidgetId[] = ["jarvis", "news", "weather", "markets", "activity", "guard"];
+const WIDGET_LABELS: Record<WidgetId, string> = {
+  jarvis: "JARVIS text summaries",
+  news: "News radar",
+  weather: "Weather",
+  markets: "Markets / stock exchange",
+  activity: "Activity log",
+  guard: "Action guard",
+};
+
+function loadWidgetLayout(): WidgetId[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem("jarvis.controlCenter.widgets") || "null") as WidgetId[] | null;
+    const valid = saved?.filter((id) => DEFAULT_WIDGETS.includes(id)) || [];
+    return [...valid, ...DEFAULT_WIDGETS.filter((id) => !valid.includes(id))];
+  } catch {
+    return [...DEFAULT_WIDGETS];
+  }
+}
+
+function saveWidgetLayout(layout: WidgetId[]) {
+  localStorage.setItem("jarvis.controlCenter.widgets", JSON.stringify(layout));
+}
+
+function applyWidgetLayout() {
+  const layout = loadWidgetLayout();
+  layout.forEach((id) => {
+    const el = widgetGrid.querySelector<HTMLElement>(`[data-widget="${id}"]`);
+    if (el) {
+      widgetGrid.appendChild(el);
+      el.style.display = "";
+    }
+  });
+  DEFAULT_WIDGETS.forEach((id) => {
+    const hidden = localStorage.getItem(`jarvis.controlCenter.hidden.${id}`) === "1";
+    const el = widgetGrid.querySelector<HTMLElement>(`[data-widget="${id}"]`);
+    if (el) el.style.display = hidden ? "none" : "";
+  });
+}
+
+function addControlCenterBrief(title: string, body: string, category = "jarvis") {
+  const row = document.createElement("div");
+  row.className = "brief-row";
+  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  row.innerHTML = `<span>${escapeHtml(category)} · ${time}</span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(body)}</small>`;
+  jarvisBriefs.prepend(row);
+  while (jarvisBriefs.children.length > 4) jarvisBriefs.lastElementChild?.remove();
+}
+
+function openWidgetCustomizer() {
+  const lines = DEFAULT_WIDGETS.map((id, index) => {
+    const hidden = localStorage.getItem(`jarvis.controlCenter.hidden.${id}`) === "1";
+    return `${index + 1}. ${hidden ? "[hidden] " : ""}${WIDGET_LABELS[id]}`;
+  }).join("\n");
+  const choice = window.prompt(`Control Center widgets:
+${lines}
+
+Type a widget name to hide/show, or type reset.`, "");
+  if (!choice) return;
+  const normalized = choice.toLowerCase().trim();
+  if (normalized === "reset") {
+    DEFAULT_WIDGETS.forEach((id) => localStorage.removeItem(`jarvis.controlCenter.hidden.${id}`));
+    saveWidgetLayout([...DEFAULT_WIDGETS]);
+  } else {
+    const match = DEFAULT_WIDGETS.find((id) => id === normalized || WIDGET_LABELS[id].toLowerCase().includes(normalized));
+    if (match) {
+      const key = `jarvis.controlCenter.hidden.${match}`;
+      localStorage.setItem(key, localStorage.getItem(key) === "1" ? "0" : "1");
+    }
+  }
+  applyWidgetLayout();
+}
+
 
 const statePill = document.getElementById("state-pill")!;
 const statePillLabel = document.getElementById("state-pill-label")!;
@@ -271,6 +349,9 @@ socket.onMessage((msg) => {
   } else if (type === "task_complete") {
     console.log("[task]", "complete:", msg.task_id, msg.status, msg.summary);
     addLog(`Task complete: ${msg.summary || msg.status}`, "system");
+  } else if (type === "control_center") {
+    addControlCenterBrief(String(msg.title || "JARVIS update"), String(msg.body || msg.text || ""), String(msg.category || "jarvis"));
+    showToast("Control Center updated", "success", 2500);
   } else if (type === "action_pending") {
     const action = msg.action as { id?: number; title?: string; risk?: string };
     addLog(`Confirmation needed: ${action.title || "external action"}`, "system");
@@ -312,6 +393,8 @@ const btnMenu = document.getElementById("btn-menu")!;
 const menuDropdown = document.getElementById("menu-dropdown")!;
 const btnRestart = document.getElementById("btn-restart")!;
 const btnFixSelf = document.getElementById("btn-fix-self")!;
+const btnMenuClose = document.getElementById("btn-menu-close")!;
+const btnControlCenter = document.getElementById("btn-control-center")!;
 
 btnMute.addEventListener("click", (e) => {
   e.stopPropagation();
@@ -328,18 +411,37 @@ btnMute.addEventListener("click", (e) => {
   showToast(isMuted ? "Microphone muted" : "Microphone live", isMuted ? "info" : "success", 2000);
 });
 
+function toggleSideMenu(force?: boolean) {
+  const open = force ?? menuDropdown.style.display === "none";
+  menuDropdown.style.display = open ? "block" : "none";
+  requestAnimationFrame(() => menuDropdown.classList.toggle("open", open));
+}
+
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
-  menuDropdown.style.display = menuDropdown.style.display === "none" ? "block" : "none";
+  toggleSideMenu();
+});
+
+menuDropdown.addEventListener("click", (e) => e.stopPropagation());
+
+btnMenuClose.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleSideMenu(false);
+});
+
+btnControlCenter.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleSideMenu(false);
+  sendCommand(btnControlCenter.dataset.command || "Summarize what matters right now for my control center.", "quick");
 });
 
 document.addEventListener("click", () => {
-  menuDropdown.style.display = "none";
+  toggleSideMenu(false);
 });
 
 btnRestart.addEventListener("click", async (e) => {
   e.stopPropagation();
-  menuDropdown.style.display = "none";
+  toggleSideMenu(false);
   statusEl.textContent = "restarting...";
   try {
     await fetch("/api/restart", { method: "POST" });
@@ -352,7 +454,7 @@ btnRestart.addEventListener("click", async (e) => {
 
 btnFixSelf.addEventListener("click", (e) => {
   e.stopPropagation();
-  menuDropdown.style.display = "none";
+  toggleSideMenu(false);
   // Activate work mode on the WebSocket session (JARVIS becomes Claude Code's voice)
   socket.send({ type: "fix_self" });
   statusEl.textContent = "entering work mode...";
@@ -362,7 +464,7 @@ btnFixSelf.addEventListener("click", (e) => {
 const btnSettings = document.getElementById("btn-settings")!;
 btnSettings.addEventListener("click", (e) => {
   e.stopPropagation();
-  menuDropdown.style.display = "none";
+  toggleSideMenu(false);
   openSettings();
 });
 
@@ -376,11 +478,23 @@ setTimeout(() => {
 // MARK XL-inspired Mission Control: metrics, rapid actions, file intake
 // ---------------------------------------------------------------------------
 
-quickActions.addEventListener("click", (event) => {
+function handleCommandButton(event: Event) {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-command]");
   if (!button) return;
   sendCommand(button.dataset.command || button.textContent || "", "quick");
+}
+quickActions.addEventListener("click", handleCommandButton);
+widgetGrid.addEventListener("click", handleCommandButton);
+widgetGrid.addEventListener("click", (event) => {
+  const pin = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-pin-widget]");
+  if (!pin) return;
+  const id = pin.dataset.pinWidget as WidgetId;
+  const layout = loadWidgetLayout().filter((widget) => widget !== id);
+  saveWidgetLayout([id, ...layout]);
+  applyWidgetLayout();
+  showToast(`${WIDGET_LABELS[id]} pinned`, "success", 1800);
 });
+btnCustomizeWidgets.addEventListener("click", openWidgetCustomizer);
 
 async function uploadFile(file: File) {
   const maxBytes = 512 * 1024;
@@ -428,6 +542,8 @@ dropZone.addEventListener("drop", async (event) => {
   }
 });
 
+applyWidgetLayout();
+addControlCenterBrief("Control Center online", "Customize widgets with Tune, or ask JARVIS to add news, weather, market snapshots, stats, and text summaries here.", "system");
 addLog("Mission control online.", "system");
 refreshSystemMetrics();
 refreshUsage();
@@ -610,7 +726,7 @@ document.addEventListener("keydown", (event) => {
       return;
     }
     if (menuDropdown.style.display !== "none") {
-      menuDropdown.style.display = "none";
+      toggleSideMenu(false);
       return;
     }
     if (typing) {

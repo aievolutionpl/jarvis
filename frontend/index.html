@@ -34,31 +34,50 @@
         <div id="artifact-list" class="mini-list"></div>
       </section>
 
-      <section id="hud-right" class="hud-panel">
-        <div class="hud-kicker">COMMAND DECK</div>
-        <div class="hud-title">Rapid Actions</div>
-        <div id="quick-actions">
-          <button data-command="Look at my screen and summarize what matters.">Scan Screen</button>
-          <button data-command="Summarize today's calendar and unread email priorities.">Daily Brief</button>
-          <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
-          <button data-command="Draft a client follow-up email based on my notes.">Draft Email</button>
-          <button data-command="Research this market and prepare a sourced brief.">Research Brief</button>
-          <button data-command="Create an invoice draft for a new client.">Invoice Draft</button>
-          <button data-command="Review the current JARVIS project and suggest one improvement.">Self Review</button>
-        </div>
-        <div id="event-log-header">
-          <span>ACTIVITY LOG</span>
-          <div class="log-actions">
-            <button id="btn-log-copy" title="Copy log to clipboard">Copy</button>
-            <button id="btn-log-clear" title="Clear log">Clear</button>
+      <section id="hud-right" class="hud-panel control-center-panel">
+        <div class="control-center-head">
+          <div>
+            <div class="hud-kicker">CONTROL CENTER</div>
+            <div class="hud-title">Personal Intel</div>
           </div>
+          <button id="btn-customize-widgets" class="hud-icon-btn" title="Customize widgets">Tune</button>
         </div>
-        <div id="event-log" aria-live="polite"></div>
-        <div class="mini-panel-header">
-          <span>ACTION GUARD</span>
-          <button id="btn-action-refresh" title="Refresh pending actions">Refresh</button>
+        <p class="control-center-subtitle">Widgets you can reorder, hide, and feed with JARVIS summaries.</p>
+        <div id="widget-grid" class="widget-grid" aria-live="polite">
+          <article class="intel-widget accent-teal">
+            <div class="widget-head"><span>Rapid Actions</span></div>
+            <div id="quick-actions" class="quick-actions-compact">
+              <button data-command="Look at my screen and summarize what matters.">Scan Screen</button>
+              <button data-command="Summarize today's calendar and unread email priorities.">Daily Brief</button>
+              <button data-command="Show my open tasks and suggest what to do next.">Task Focus</button>
+              <button data-command="Research this market and prepare a sourced brief.">Research Brief</button>
+            </div>
+          </article>
+          <article class="intel-widget accent-cyan" data-widget="jarvis">
+            <div class="widget-head"><span>JARVIS Briefs</span><button data-pin-widget="jarvis">Pin</button></div>
+            <div id="jarvis-briefs" class="widget-body"></div>
+          </article>
+          <article class="intel-widget accent-violet" data-widget="news">
+            <div class="widget-head"><span>News Radar</span><button data-command="Create a concise news widget for my control center with 3 important headlines and why they matter.">Ask</button></div>
+            <div class="widget-body"><strong>Awaiting live brief</strong><small>Ask JARVIS to create or refresh a news widget for your market, city, or industry.</small></div>
+          </article>
+          <article class="intel-widget accent-amber" data-widget="weather">
+            <div class="widget-head"><span>Weather</span><button data-command="Check today's weather and send a short weather card to my control center.">Ask</button></div>
+            <div class="widget-body"><strong id="widget-weather-value">Set by JARVIS</strong><small>Use voice/text: “add weather for London to control center”.</small></div>
+          </article>
+          <article class="intel-widget accent-green" data-widget="markets">
+            <div class="widget-head"><span>Markets</span><button data-command="Create a market snapshot widget for my watchlist in the control center.">Ask</button></div>
+            <div class="widget-body"><strong>Watchlist ready</strong><small>Stocks, crypto, indexes, and business KPIs can be pushed here by JARVIS.</small></div>
+          </article>
+          <article class="intel-widget accent-blue" data-widget="activity">
+            <div class="widget-head"><span>Activity Log</span><div class="log-actions"><button id="btn-log-copy" title="Copy log to clipboard">Copy</button><button id="btn-log-clear" title="Clear log">Clear</button></div></div>
+            <div id="event-log" aria-live="polite"></div>
+          </article>
+          <article class="intel-widget accent-red" data-widget="guard">
+            <div class="widget-head"><span>Action Guard</span><button id="btn-action-refresh" title="Refresh pending actions">Refresh</button></div>
+            <div id="pending-actions" class="mini-list"></div>
+          </article>
         </div>
-        <div id="pending-actions" class="mini-list"></div>
       </section>
     </div>
 
@@ -127,12 +146,18 @@
       </button>
     </div>
 
-    <!-- Dropdown menu -->
-    <div id="menu-dropdown" style="display:none">
-      <button id="btn-settings">Settings</button>
+    <!-- Right-side menu drawer -->
+    <aside id="menu-dropdown" class="side-menu" style="display:none" aria-label="JARVIS side menu">
+      <div class="side-menu-header">
+        <span>JARVIS Menu</span>
+        <button id="btn-menu-close" title="Close menu">&times;</button>
+      </div>
+      <button id="btn-settings">Settings · model & APIs</button>
+      <button id="btn-control-center" data-command="Summarize what matters right now and send it to my control center.">Send brief to Control Center</button>
       <button id="btn-restart">Restart Server</button>
       <button id="btn-fix-self">Fix Yourself</button>
-    </div>
+      <small>Slides from the right. Use Settings → Engine for model choice, and Settings → API Keys for required vs optional connectors.</small>
+    </aside>
 
     <div id="status-text"></div>
     <div id="jarvis-label">JARVIS</div>
