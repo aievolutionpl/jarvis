@@ -6,6 +6,15 @@ $ShortcutPath = Join-Path $Desktop "JARVIS by AI Evolution Labs.lnk"
 $Launcher = Join-Path $Root "start.ps1"
 $IconCandidate = Join-Path $Root "jarvis.ico"
 
+# Best-effort brand icon (writes jarvis.ico at the repo root).
+if (-not (Test-Path $IconCandidate)) {
+  $Python = Get-Command python -ErrorAction SilentlyContinue
+  if (-not $Python) { $Python = Get-Command py -ErrorAction SilentlyContinue }
+  if ($Python) {
+    try { & $Python.Source (Join-Path $Root "scripts\generate_icon.py") | Out-Null } catch { }
+  }
+}
+
 $Shell = New-Object -ComObject WScript.Shell
 $Shortcut = $Shell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = "powershell.exe"

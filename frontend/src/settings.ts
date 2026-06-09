@@ -57,6 +57,9 @@ interface McpServer {
   status: string;
   auth_required: boolean;
   auth_present: boolean;
+  auth_env: string;
+  needs_config: boolean;
+  config_hint: string;
   docs_url: string;
 }
 
@@ -980,7 +983,19 @@ function renderMcp(servers: McpServer[]) {
         <button class="settings-btn mcp-btn" data-mcp="${escapeHtml(s.id)}" data-connected="${s.connected}">${s.connected ? "Disconnect" : "Connect"}</button>
       </div>
       <p>${escapeHtml(s.description)}</p>
-      ${s.connected && s.auth_required && !s.auth_present ? `<small class="mcp-warn">Needs an API key — add it in the Keys section.</small>` : ""}
+      ${s.needs_config ? `
+      <div class="mcp-auth">
+        <input type="text" class="mcp-config-input" data-mcp-config="${escapeHtml(s.id)}"
+               placeholder="MCP server URL or stdio command" aria-label="${escapeHtml(s.name)} server URL or command" />
+      </div>
+      ${s.config_hint ? `<small class="mcp-hint">${escapeHtml(s.config_hint)}</small>` : ""}` : ""}
+      ${s.auth_required && !s.auth_present ? `
+      <div class="mcp-auth">
+        <input type="password" class="mcp-token-input" data-token-for="${escapeHtml(s.id)}"
+               placeholder="${escapeHtml(s.auth_env)}" aria-label="${escapeHtml(s.name)} API token" />
+        <button class="settings-btn mcp-token-save" data-save-token="${escapeHtml(s.id)}" data-env="${escapeHtml(s.auth_env)}">Save key</button>
+      </div>` : ""}
+      ${s.auth_required && s.auth_present ? `<small class="mcp-hint mcp-ok">API key on file (${escapeHtml(s.auth_env)}).</small>` : ""}
     </div>`
     )
     .join("");
@@ -988,10 +1003,31 @@ function renderMcp(servers: McpServer[]) {
 
 async function toggleMcp(id: string, connected: boolean) {
   try {
-    await apiPost(`/api/mcp/${id}/${connected ? "disconnect" : "connect"}`, { config: {} });
+    const config: Record<string, string> = {};
+    if (!connected) {
+      const input = document.querySelector<HTMLInputElement>(`input[data-mcp-config="${id}"]`);
+      const value = input?.value.trim() || "";
+      if (value) {
+        if (/^https?:\/\//i.test(value)) config.url = value;
+        else config.command = value;
+      }
+    }
+    await apiPost(`/api/mcp/${id}/${connected ? "disconnect" : "connect"}`, { config });
     await loadMcp();
   } catch (e) {
     console.error("[settings] MCP toggle failed:", e);
+  }
+}
+
+async function saveMcpToken(id: string, envKey: string) {
+  const input = document.querySelector<HTMLInputElement>(`input[data-token-for="${id}"]`);
+  const value = input?.value.trim() || "";
+  if (!value || !envKey) return;
+  try {
+    await apiPost("/api/settings/keys", { key_name: envKey, key_value: value });
+    await loadMcp();
+  } catch (e) {
+    console.error("[settings] MCP token save failed:", e);
   }
 }
 
@@ -1252,8 +1288,13 @@ function wireEvents() {
     toggleSkill(btn.dataset.slug || "");
   });
 
-  // MCP connect/disconnect (delegated)
+  // MCP connect/disconnect + token save (delegated)
   document.getElementById("mcp-list")?.addEventListener("click", (e) => {
+    const tokenBtn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-save-token]");
+    if (tokenBtn) {
+      saveMcpToken(tokenBtn.dataset.saveToken || "", tokenBtn.dataset.env || "");
+      return;
+    }
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-mcp]");
     if (!btn) return;
     toggleMcp(btn.dataset.mcp || "", btn.dataset.connected === "true");

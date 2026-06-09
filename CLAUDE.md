@@ -51,9 +51,12 @@ npm run dev
 - `memory.py` — SQLite memories, tasks, notes, FTS search, and memory context injected into prompts.
 - `skills.py` — bundled skill catalog, enabled-skill prompt injection, executable artifact handlers.
 - `onboarding.py` — first-run profile discovery and skill recommendations.
+- `mcp_registry.py` — curated MCP connector catalog, connection state, auth env keys.
+- `system_control.py` — cross-platform desktop control (apps, URLs, paths, volume, media, lock, clipboard, screenshots) with pure per-platform command builders and graceful degradation.
 - `frontend/src/settings.ts` — settings/onboarding UI and provider status rendering.
 - `frontend/src/orb.ts` — Three.js audio-reactive orb.
 - `actions.py`, `work_mode.py`, `dispatch_registry.py` — desktop actions and Claude Code dispatch.
+- `scripts/generate_icon.py`, `scripts/install_desktop_shortcut.*` — brand icon generation and desktop shortcut installers.
 
 ## Memory and skill rules
 - Memory is local/private SQLite state in `data/jarvis.db`; never commit `data/` artifacts or secrets.
@@ -70,14 +73,16 @@ npm run dev
 
 ## Security and configuration
 - Secrets belong only in `.env`; `.env.example` must contain placeholders only.
-- Settings API should allow only whitelisted environment keys.
+- Settings API should allow only whitelisted environment keys (provider keys, personalization, MCP auth tokens, weather).
 - Mail access is read-only by design.
-- Non-macOS platforms should report unavailable Apple integrations gracefully.
+- Non-macOS platforms should report unavailable Apple integrations gracefully; generic desktop control must route through `system_control.py`, never raise, and reply with a butler-style "not available on this platform" message when unsupported.
 
 ## Checks before handing off
 ```bash
-python -m compileall server.py providers integrations.py memory.py skills.py
+python -m compileall server.py providers integrations.py memory.py skills.py actions.py system_control.py mcp_registry.py
 python tests/test_providers.py
+python tests/test_system_control.py
+python tests/test_skills_handlers.py
 cd frontend && npm run build
 ```
 

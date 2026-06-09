@@ -1548,6 +1548,49 @@ html, body {
   font-size: 11px;
 }
 
+.mcp-auth {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.mcp-auth input {
+  flex: 1;
+  padding: 7px 10px;
+  background: rgba(2, 8, 16, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 6px;
+  color: #e2f4ff;
+  font-size: 12px;
+}
+
+.mcp-auth input::placeholder {
+  color: rgba(148, 180, 200, 0.45);
+}
+
+.mcp-hint {
+  display: block;
+  margin-top: 6px;
+  color: rgba(148, 180, 200, 0.6);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.mcp-hint.mcp-ok {
+  color: rgba(74, 222, 128, 0.7);
+}
+
+/* Keyboard accessibility — clear focus ring on interactive elements */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.75);
+  outline-offset: 2px;
+}
+
 /* Settings panel on narrow screens — full width, comfortable touch targets */
 @media (max-width: 560px) {
   .settings-panel {
