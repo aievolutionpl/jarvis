@@ -40,3 +40,7 @@ desktop-overlay/node_modules/
 context/
 *.db-shm
 *.db-wal
+
+# Generated brand icons (scripts/generate_icon.py)
+jarvis.png
+jarvis.ico

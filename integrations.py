@@ -42,6 +42,7 @@ API_PROVIDERS: tuple[ApiProvider, ...] = (
     ApiProvider("deepseek", "DeepSeek", "DEEPSEEK_API_KEY", "LLM", "Optional DeepSeek V4 Pro coding/reasoning provider for agent tasks.", "sk-...", "https://platform.deepseek.com/"),
     ApiProvider("openai", "OpenAI", "OPENAI_API_KEY", "LLM", "Optional GPT-5 family, multimodal, realtime, and tool-using model provider.", "sk-...", "https://platform.openai.com/docs/models"),
     ApiProvider("google", "Google AI", "GOOGLE_API_KEY", "LLM", "Optional Gemini models and Google ecosystem integrations.", "AIza...", "https://aistudio.google.com/"),
+    ApiProvider("brave_search", "Brave Search", "BRAVE_API_KEY", "Research", "Optional web search key powering the Web Search MCP tool.", "BSA...", "https://brave.com/search/api/"),
 )
 
 

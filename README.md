@@ -28,12 +28,16 @@ It is designed as **bring your own key** software: keys stay in your local `.env
 ### What JARVIS can do
 
 - Talk with a Stark-style assistant voice and a reactive Three.js orb.
+- Control the computer by voice on macOS, Windows, and Linux: open apps, websites, files, and terminals, set volume, control media playback, copy to the clipboard, take screenshots, and lock the screen.
 - Remember durable facts, preferences, decisions, projects, people, tasks, and notes.
 - Prioritize your day using calendar events, open tasks, and important memories.
 - Search or open websites, summarize pages, and send compact cards to the Control Center.
 - Read Apple Calendar/Mail/Notes on macOS and degrade gracefully on Windows/Linux.
 - Launch Claude Code in a project, ask it to inspect/fix/build, and track active dispatches.
+- Connect external tools through curated MCP connectors (Notion, Slack, GitHub, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase, and more) with API tokens managed from Settings.
 - Use installable business skills such as meeting summaries, email triage, SOP writing, invoices, proposals, support replies, SQL help, and deployment checklists.
+- Lean on personal-assistant skills: daily brief, weekly review, focus sprints, reading list, meal/workout/learning plans, wellness breaks, password generator, unit converter, and Markdown-to-HTML.
+- Use precise utility skills with real executable handlers: timezone converter, date calculator, JSON formatter, CSV-to-table, writing analyzer, and checklist builder — plus research skills for fact-checking, product comparisons, and news digests.
 - Run executable skills that generate local artifacts under `data/artifacts/`.
 
 ### Supported connectors
@@ -58,6 +62,26 @@ It is designed as **bring your own key** software: keys stay in your local `.env
 
 Perplexity, Groq, and Hermes were removed from the connector catalog. Hermes is not exposed because there is no Hermes API connector in this project, and unsupported providers are intentionally absent from onboarding/settings.
 
+#### MCP tool connectors
+
+Settings → Skills & Tools lists curated MCP servers (Notion, Slack, GitHub, Supabase, Stripe, HubSpot, Figma, Linear, Sentry, Asana, Atlassian, Zapier, Canva, Brave web search, local files, and Google Workspace via your own endpoint). Paste each connector's API token directly on its card; servers without a public hosted endpoint accept a custom URL or stdio command. JARVIS calls connected tools with `[ACTION:MCP_CALL]`, and write operations go through the action guard for confirmation.
+
+### Desktop control support matrix
+
+| Capability | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| Open app / URL / file | ✅ | ✅ | ✅ (`xdg-open`) |
+| Open terminal (with command) | ✅ Terminal.app | ✅ PowerShell | ✅ gnome-terminal/konsole |
+| System volume | ✅ | — (graceful reply) | ✅ (`pactl`) |
+| Media play/pause/next/previous | ✅ | — (graceful reply) | ✅ (`playerctl`) |
+| Lock screen | ✅ | ✅ | ✅ (`loginctl`) |
+| Clipboard copy | ✅ | ✅ | ✅ (`xclip`/`wl-copy`) |
+| Screenshot | ✅ | ✅ | ✅ (`gnome-screenshot`) |
+| Apple Calendar / Mail / Notes | ✅ | reported unavailable | reported unavailable |
+| Claude Code terminal dispatch | ✅ | reported unavailable | reported unavailable |
+
+Unsupported combinations never crash — JARVIS answers with a polite "not available on this platform" message.
+
 ### How memory and skills work
 
 - **Memory** lives in SQLite (`data/jarvis.db`) and stores facts, preferences, projects, people, decisions, tasks, and notes. Relevant memories are injected into every LLM call as private context.
@@ -73,9 +97,9 @@ cd jarvis
 .\start.ps1
 ```
 
-The PowerShell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut named **JARVIS by AI Evolution Labs**, installs Python/frontend dependencies, and starts backend/frontend terminals.
+The PowerShell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut named **JARVIS by AI Evolution Labs** with the generated orb icon, installs Python/frontend dependencies, starts backend/frontend terminals, and opens the app in your browser.
 
-Open Chrome at <http://localhost:5173>. If Vite prints a different local URL, use the URL shown in the terminal.
+Open Chrome at <http://localhost:5180>. If Vite prints a different local URL, use the URL shown in the terminal.
 
 ### Quick start — macOS / Linux
 
@@ -85,7 +109,9 @@ cd jarvis
 ./start.sh
 ```
 
-The shell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut (`JARVIS.command` on macOS or `jarvis.desktop` on Linux), installs dependencies, and starts the backend plus frontend dev server.
+The shell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut (`JARVIS.command` on macOS or `jarvis.desktop` with the generated orb icon on Linux), installs dependencies, starts the backend plus frontend dev server, and opens <http://localhost:5180> once the server reports healthy.
+
+The brand icon (`jarvis.png` / `jarvis.ico`) is generated locally by `scripts/generate_icon.py` (requires Pillow, already in `requirements.txt`) — no binary assets are committed.
 
 ### Manual start
 
@@ -158,13 +184,46 @@ Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS
 | LLM | Anthropic default; OpenAI, DeepSeek, Google, Ollama optional |
 | TTS | Fish Audio default; ElevenLabs optional |
 | Local state | SQLite memory/tasks/notes/skills |
-| OS bridge | AppleScript on macOS, graceful status elsewhere |
+| OS bridge | AppleScript on macOS; `system_control.py` command builders on Windows/Linux; graceful status when unsupported |
+
+### API reference
+
+Key REST endpoints (all served by `server.py` on port `8340`):
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/health`, `GET /api/system`, `GET /api/usage` | Health, telemetry, token/cost usage |
+| `GET/POST/DELETE /api/tasks`, `GET /api/projects` | Claude Code task and project management |
+| `POST /api/settings/keys`, `POST /api/settings/active`, `GET /api/settings/status` | Whitelisted env keys, active LLM/TTS engine, full status payload |
+| `POST /api/settings/test-provider`, `GET /api/settings/ollama-models` | Connectivity tests and local model discovery |
+| `GET /api/skills`, `POST /api/skills/{slug}/toggle`, `POST /api/skills/{slug}/run` | Skill catalog, enablement, executable runs |
+| `GET /api/artifacts`, `GET /api/artifacts/{name}/preview` | Generated artifact listing and preview |
+| `GET /api/mcp`, `POST /api/mcp/{id}/connect`, `POST /api/mcp/{id}/call` | MCP connector management and tool calls |
+| `GET/POST/DELETE /api/memories`, `GET /api/memories/search` | Persistent memory CRUD and FTS search |
+| `GET /api/onboarding`, `POST /api/onboarding/profile` | First-run profile discovery |
+| `GET /api/action-log`, `POST /api/action-log/{id}/confirm` | Action guard audit trail and confirmations |
+
+The WebSocket voice loop at `ws://localhost:8340/ws/voice` exchanges JSON messages: client sends `{"type": "transcript", "text": ...}`; the server replies with `status` (state changes), `audio` (base64 TTS + text), `text` (no-TTS fallback), `task_spawned` / `task_complete`, `control_center` (HUD cards), and `action_pending` (guardrail confirmations).
+
+The LLM triggers work through `[ACTION:*]` tags embedded in replies — `BUILD`, `BROWSE`, `RESEARCH`, `OPEN_TERMINAL`, `PROMPT_PROJECT`, `ADD_TASK`, `ADD_NOTE`, `COMPLETE_TASK`, `REMEMBER`, `CREATE_NOTE`, `READ_NOTE`, `SCREEN`, `PROFILE`, `RECOMMEND_SKILLS`, `ONBOARD_DONE`, `RUN_SKILL`, `MCP_CALL`, `CONTROL_CENTER`, `OPEN_APP`, `OPEN_PATH`, `SET_VOLUME`, `MEDIA`, `LOCK_SCREEN`, `CLIPBOARD`, and `SCREENSHOT`.
+
+### Troubleshooting
+
+- **Microphone never activates** — voice input uses the browser Web Speech API; use Chrome (or another Chromium browser) on `http://localhost:5180` and grant the mic permission when prompted.
+- **No spoken replies** — add `FISH_API_KEY` (or switch to ElevenLabs) in Settings → API Keys; without a TTS key JARVIS falls back to on-screen text.
+- **Voice replies use the wrong Claude model** — voice replies use your selected Anthropic model; the low-latency Haiku default applies only when no explicit model override is set.
+- **Port already in use** — the backend listens on `8340` and Vite on `5180`; stop the conflicting process or adjust `frontend/vite.config.ts`.
+- **Ollama not detected** — verify `OLLAMA_BASE_URL` (default `http://localhost:11434`) and use the Test button in Settings → Engine.
+- **"Not available on this platform"** — Apple Calendar/Mail/Notes and Claude Code terminal dispatch are macOS-only; generic desktop control works everywhere (see the support matrix above).
+- **No desktop shortcut icon** — run `python scripts/generate_icon.py` (requires Pillow) and reinstall the shortcut.
 
 ### Development checks
 
 ```bash
-python -m compileall server.py providers integrations.py memory.py skills.py
+python -m compileall server.py providers integrations.py memory.py skills.py actions.py system_control.py mcp_registry.py
 python tests/test_providers.py
+python tests/test_system_control.py
+python tests/test_skills_handlers.py
 cd frontend && npm run build
 ```
 
@@ -176,6 +235,8 @@ cd frontend && npm run build
 | `providers/config.py` | Single source of truth for LLM/TTS provider metadata |
 | `providers/llm.py` | Unified completion router for Anthropic, OpenAI-compatible providers, Gemini, and Ollama |
 | `integrations.py` | Onboarding/settings connector catalog |
+| `mcp_registry.py` | Curated MCP connector catalog with auth/token management |
+| `system_control.py` | Cross-platform desktop control (apps, volume, media, clipboard, lock, screenshots) |
 | `memory.py` | SQLite memory, tasks, notes, FTS search, and prompt context |
 | `skills.py` | Skill catalog, enable/disable logic, prompt injection, executable handlers |
 | `frontend/src/settings.ts` | Onboarding/settings UI logic |
@@ -194,12 +255,16 @@ Projekt działa w modelu **bring your own key**: klucze zostają lokalnie w `.en
 ### Co JARVIS potrafi
 
 - Rozmawiać głosem w stylu Stark/JARVIS i animować audio-reaktywną kulę.
+- Sterować komputerem głosem na macOS, Windows i Linux: otwierać aplikacje, strony, pliki i terminale, ustawiać głośność, sterować odtwarzaczem, kopiować do schowka, robić zrzuty ekranu i blokować ekran (niewspierane kombinacje dostają grzeczną odpowiedź zamiast błędu).
+- Łączyć się z zewnętrznymi narzędziami przez connectory MCP (Notion, Slack, GitHub, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase i inne) — tokeny wkleja się bezpośrednio w Ustawieniach.
 - Zapamiętywać fakty, preferencje, decyzje, projekty, osoby, zadania i notatki.
 - Planować dzień na podstawie kalendarza, otwartych zadań i ważnych wspomnień.
 - Otwierać strony, robić research przez przeglądarkę i wysyłać krótkie karty do Control Center.
 - Czytać Apple Calendar/Mail/Notes na macOS; na Windows/Linux pokazuje status niedostępnych integracji bez wysypywania aplikacji.
 - Uruchamiać Claude Code w projekcie, prosić go o analizę/poprawki/build i śledzić aktywne dispatch’e.
 - Korzystać z umiejętności biznesowych: podsumowania spotkań, triage maili, SOP, faktury, oferty, odpowiedzi supportu, SQL, checklisty deploymentu i inne.
+- Korzystać z umiejętności asystenta osobistego: poranny brief, przegląd tygodnia, sprinty skupienia, lista lektur, plany posiłków/treningów/nauki, przerwy wellness, generator haseł, konwerter jednostek i Markdown→HTML.
+- Używać precyzyjnych narzędzi z wykonywalnymi handlerami: konwerter stref czasowych, kalkulator dat, formatowanie JSON, CSV→tabela, analizator tekstu i generator checklist — plus umiejętności researchowe: fact-checking, porównania produktów i przegląd newsów.
 - Generować lokalne artefakty z umiejętności wykonywalnych w `data/artifacts/`.
 
 ### Connectory API
@@ -238,7 +303,7 @@ macOS/Linux:
 ./start.sh
 ```
 
-Launchery tworzą `.env` z `.env.example`, instalują zależności, dodają skrót na pulpit i uruchamiają backend oraz frontend. Potem otwórz Chrome na <http://localhost:5173>.
+Launchery tworzą `.env` z `.env.example`, instalują zależności, generują ikonę marki (`scripts/generate_icon.py`), dodają skrót na pulpit z ikoną i uruchamiają backend oraz frontend. Potem otwórz Chrome na <http://localhost:5180>.
 
 ### Jak odpalić ręcznie
 
