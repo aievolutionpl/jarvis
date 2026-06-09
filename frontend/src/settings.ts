@@ -400,7 +400,7 @@ function buildPanelHTML(): string {
           <!-- Engine: active brain + voice -->
           <section class="settings-section" id="section-engine">
             <h3 data-i18n="engine">Model & Voice</h3>
-            <p class="section-note">Choose the model JARVIS uses for conversation. Claude is recommended for tool actions; OpenAI, Google, DeepSeek, Groq, or Ollama can be selected when configured.</p>
+            <p class="section-note">Choose the model JARVIS uses for conversation. Claude is recommended for tool actions; OpenAI, Google, DeepSeek, or Ollama can be selected when configured.</p>
 
             <div class="settings-field">
               <label>Active Brain</label>

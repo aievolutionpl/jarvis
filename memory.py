@@ -465,7 +465,9 @@ def build_memory_context(user_message: str) -> str:
     Searches for relevant memories based on what the user is talking about.
     Fast — runs FTS queries, no heavy computation.
     """
-    parts = []
+    parts = [
+        "MEMORY PROTOCOL: use stored memories as helpful context, never as an excuse to reveal private data unnecessarily; update memory only through explicit action tags when the user shares durable facts, preferences, decisions, or plans."
+    ]
 
     # Always include: open high-priority tasks
     high_tasks = [t for t in get_open_tasks() if t["priority"] == "high"]
@@ -490,7 +492,7 @@ def build_memory_context(user_message: str) -> str:
         if imp_lines:
             parts.append("KEY FACTS:\n" + "\n".join(imp_lines[:3]))
 
-    return "\n\n".join(parts) if parts else ""
+    return "\n\n".join(parts)
 
 
 def format_tasks_for_voice(tasks: list[dict]) -> str:

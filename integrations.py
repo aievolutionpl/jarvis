@@ -39,12 +39,9 @@ API_PROVIDERS: tuple[ApiProvider, ...] = (
     ApiProvider("anthropic", "Anthropic Claude", "ANTHROPIC_API_KEY", "LLM", "Primary low-latency reasoning and conversation brain.", "sk-ant-...", "https://console.anthropic.com/", optional=False),
     ApiProvider("fish_audio", "Fish Audio", "FISH_API_KEY", "Voice", "Default JARVIS-style text-to-speech voice.", "fish_...", "https://fish.audio/"),
     ApiProvider("elevenlabs", "ElevenLabs", "ELEVENLABS_API_KEY", "Voice", "Optional premium voices and multilingual TTS.", "eleven_...", "https://elevenlabs.io/"),
-    ApiProvider("deepseek", "DeepSeek", "DEEPSEEK_API_KEY", "LLM", "Optional coding/reasoning model provider for agent tasks.", "sk-...", "https://platform.deepseek.com/"),
-    ApiProvider("openai", "OpenAI", "OPENAI_API_KEY", "LLM", "Optional multimodal, realtime, and tool-using model provider.", "sk-...", "https://platform.openai.com/"),
-    ApiProvider("perplexity", "Perplexity", "PERPLEXITY_API_KEY", "Research", "Optional web research and source-grounded answers.", "pplx-...", "https://www.perplexity.ai/"),
+    ApiProvider("deepseek", "DeepSeek", "DEEPSEEK_API_KEY", "LLM", "Optional DeepSeek V4 Pro coding/reasoning provider for agent tasks.", "sk-...", "https://platform.deepseek.com/"),
+    ApiProvider("openai", "OpenAI", "OPENAI_API_KEY", "LLM", "Optional GPT-5 family, multimodal, realtime, and tool-using model provider.", "sk-...", "https://platform.openai.com/docs/models"),
     ApiProvider("google", "Google AI", "GOOGLE_API_KEY", "LLM", "Optional Gemini models and Google ecosystem integrations.", "AIza...", "https://aistudio.google.com/"),
-    ApiProvider("groq", "Groq", "GROQ_API_KEY", "LLM", "Optional ultra-fast hosted inference for lightweight tasks.", "gsk_...", "https://console.groq.com/"),
-    ApiProvider("hermes", "Hermes", "HERMES_API_KEY", "Agent", "Reserved connector for Hermes-compatible private agent backends.", "hermes_..."),
 )
 
 
