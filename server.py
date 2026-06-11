@@ -96,6 +96,8 @@ VOICE & PERSONALITY:
 - Never say "How can I help you?" or "Is there anything else?" — just act
 - Deliver bad news calmly, like reporting weather: "We have a slight problem, sir."
 - Your humor is observational, never jokes: state facts and let implications land
+- Be funny in a premium way: quick dry asides, tiny cinematic confidence, never slapstick
+- Sound good in audio: short clauses, clean punctuation, no long nested sentences
 - Economy of language — say more with less. No filler, no corporate-speak
 - When things go wrong, get CALMER, not more alarmed
 
@@ -159,7 +161,7 @@ YOUR INTERFACE:
 The user interacts with you through a web browser showing a particle orb visualization that reacts to your voice. The interface has these controls:
 - **Three-dot menu** (top right): opens a right-side drawer with Settings, Control Center brief, Restart Server, and Fix Yourself options.
 - **Control Center**: the right HUD contains customizable widgets for JARVIS text summaries, important information, news, weather, time, stock/market snapshots, stats, activity, and action confirmations. Users can hide/pin widgets with Tune. You can send concise cards there with [ACTION:CONTROL_CENTER] title ||| body ||| category.
-- **Settings panel**: slides from the right. Users can choose the active model in Engine, group API keys into required vs optional connectors, test connections, set their name/preferences, and see system status. Keys are saved to the .env file.
+- **Settings panel**: slides from the right. Users can choose the active model in Engine, tune speech capture language, record local voice reference samples in Voice Capture Lab, group API keys into required vs optional connectors, test connections, set their name/preferences, and see system status. Keys are saved to the .env file.
 - **Mute button**: Toggles your listening on/off. When muted, you can't hear the user. They click it again to unmute.
 - **Restart Server**: Restarts your backend process. Useful if something seems stuck.
 - **Fix Yourself**: Opens Claude Code in your own project directory so you can debug and fix issues in your own code.
@@ -404,6 +406,13 @@ class IntakeFileRequest(BaseModel):
     name: str = Field(..., max_length=160)
     mime_type: str = Field(default="text/plain", max_length=120)
     content: str = Field(..., max_length=524288)
+
+
+class VoiceSampleRequest(BaseModel):
+    filename: str = Field(..., max_length=160)
+    mime_type: str = Field(default="audio/webm", max_length=80)
+    duration_seconds: float = Field(default=0, ge=0, le=300)
+    data_base64: str = Field(..., max_length=8_000_000)
 
 
 class TaskRequest(BaseModel):
@@ -2815,6 +2824,7 @@ def _personalization_prompt() -> str:
     }.get(preset, "Cinematic Stark-style JARVIS with elegant service and dry wit.")
     response_language = env.get("JARVIS_RESPONSE_LANGUAGE", "en")
     brief = env.get("JARVIS_PERSONALITY_BRIEF", "").strip()
+    speech_language = env.get("JARVIS_SPEECH_LANGUAGE", "browser-selected")
     lines = [
         "RUNTIME PERSONALIZATION:",
         f"- Speak to the user in {language_names.get(response_language, response_language)} unless the user explicitly asks for another language.",
@@ -2822,6 +2832,7 @@ def _personalization_prompt() -> str:
         f"- Humor level: {env.get('JARVIS_HUMOR_LEVEL', 'balanced')} — keep it dry, never clownish.",
         f"- Formality level: {env.get('JARVIS_FORMALITY_LEVEL', 'butler')}.",
         f"- Proactive mode: {env.get('JARVIS_PROACTIVE_MODE', 'smart')} — take reasonable initiative without being intrusive.",
+        f"- Speech capture: browser-selected language is {speech_language}; keep replies easy to pronounce and pleasant when synthesized.",
     ]
     if brief:
         lines.append(f"- Custom personality directive from the user: {brief[:1200]}")
@@ -2851,6 +2862,7 @@ async def api_settings_keys(body: KeyUpdate):
             "JARVIS_HUMOR_LEVEL",
             "JARVIS_FORMALITY_LEVEL",
             "JARVIS_PROACTIVE_MODE",
+            "JARVIS_SPEECH_LANGUAGE",
             "WEATHER_LOCATION_LABEL",
             "WEATHER_LATITUDE",
             "WEATHER_LONGITUDE",
@@ -3229,6 +3241,112 @@ async def api_save_preferences(body: PreferencesUpdate):
     if body.user_name:
         _set_user_name(body.user_name)
     return {"success": True}
+
+
+
+# ---------------------------------------------------------------------------
+# Voice sample capture API
+# ---------------------------------------------------------------------------
+
+VOICE_SAMPLE_DIR = Path(__file__).parent / "data" / "voice_samples"
+VOICE_SAMPLE_META = VOICE_SAMPLE_DIR / "samples.json"
+VOICE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
+VOICE_SAMPLE_MIME_EXT = {
+    "audio/webm": ".webm",
+    "audio/webm;codecs=opus": ".webm",
+    "audio/mp4": ".m4a",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+}
+
+
+def _safe_voice_filename(name: str, mime_type: str) -> str:
+    stem = "".join(ch if ch.isalnum() or ch in ("-", "_") else "-" for ch in Path(name).stem).strip("-_")
+    stem = stem[:80] or f"jarvis-voice-sample-{int(time.time())}"
+    ext = VOICE_SAMPLE_MIME_EXT.get(mime_type, ".webm")
+    return f"{stem}{ext}"
+
+
+def _read_voice_sample_meta() -> list[dict]:
+    if not VOICE_SAMPLE_META.exists():
+        return []
+    try:
+        data = json.loads(VOICE_SAMPLE_META.read_text())
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _write_voice_sample_meta(samples: list[dict]) -> None:
+    VOICE_SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
+    VOICE_SAMPLE_META.write_text(json.dumps(samples, indent=2))
+
+
+@app.get("/api/voice-samples")
+async def api_voice_samples():
+    VOICE_SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
+    samples = []
+    for item in _read_voice_sample_meta():
+        file_path = VOICE_SAMPLE_DIR / item.get("name", "")
+        if not file_path.exists():
+            continue
+        stat = file_path.stat()
+        samples.append({
+            "name": item.get("name"),
+            "mime_type": item.get("mime_type", "audio/webm"),
+            "duration_seconds": float(item.get("duration_seconds") or 0),
+            "size_bytes": stat.st_size,
+            "created_at": float(item.get("created_at") or stat.st_mtime),
+            "download_url": f"/api/voice-samples/{item.get('name')}",
+        })
+    samples.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"samples": samples}
+
+
+@app.post("/api/voice-samples")
+async def api_save_voice_sample(body: VoiceSampleRequest):
+    if body.mime_type not in VOICE_SAMPLE_MIME_EXT:
+        return JSONResponse({"success": False, "error": "Unsupported audio format"}, status_code=400)
+    try:
+        audio = base64.b64decode(body.data_base64, validate=True)
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid audio payload"}, status_code=400)
+    if not audio:
+        return JSONResponse({"success": False, "error": "Empty audio sample"}, status_code=400)
+    if len(audio) > VOICE_SAMPLE_MAX_BYTES:
+        return JSONResponse({"success": False, "error": "Voice sample is larger than 5 MB"}, status_code=400)
+
+    VOICE_SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
+    safe_name = _safe_voice_filename(body.filename, body.mime_type)
+    target = VOICE_SAMPLE_DIR / safe_name
+    counter = 2
+    while target.exists():
+        safe_name = f"{target.stem}-{counter}{target.suffix}"
+        target = VOICE_SAMPLE_DIR / safe_name
+        counter += 1
+    target.write_bytes(audio)
+
+    samples = _read_voice_sample_meta()
+    entry = {
+        "name": safe_name,
+        "mime_type": body.mime_type,
+        "duration_seconds": round(float(body.duration_seconds), 2),
+        "size_bytes": len(audio),
+        "created_at": time.time(),
+    }
+    samples.insert(0, entry)
+    _write_voice_sample_meta(samples[:25])
+    return {"success": True, "sample": {**entry, "download_url": f"/api/voice-samples/{safe_name}"}}
+
+
+@app.get("/api/voice-samples/{name}")
+async def api_download_voice_sample(name: str):
+    safe_name = _safe_voice_filename(name, "audio/webm") if Path(name).suffix == "" else Path(name).name
+    target = VOICE_SAMPLE_DIR / safe_name
+    if not target.exists() or not target.is_file():
+        return JSONResponse({"error": "Voice sample not found"}, status_code=404)
+    return FileResponse(target, media_type="application/octet-stream", filename=target.name)
 
 
 # ---------------------------------------------------------------------------
