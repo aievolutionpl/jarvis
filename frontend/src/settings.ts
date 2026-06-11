@@ -120,6 +120,19 @@ interface StatusResponse {
   onboarding?: { status: string; turns: number };
 }
 
+interface VoiceSample {
+  name: string;
+  mime_type: string;
+  duration_seconds: number;
+  size_bytes: number;
+  created_at: number;
+  download_url: string;
+}
+
+interface VoiceSamplesResponse {
+  samples: VoiceSample[];
+}
+
 interface PreferencesResponse {
   user_name: string;
   honorific: string;
@@ -444,6 +457,36 @@ function buildPanelHTML(): string {
                 <input type="text" id="input-eleven-voice" placeholder="JBFqnCBsd6RMkjVDRZzb" />
                 <button class="settings-btn" id="btn-save-eleven-voice">Save</button>
               </div>
+            </div>
+
+            <div class="voice-lab-card">
+              <div>
+                <span class="voice-lab-kicker">🎙️ Voice Capture Lab</span>
+                <h4>Record a reference voice sample</h4>
+                <p>Capture a clean 10–30 second sample, play it back, save it locally, and use the sample with your chosen voice provider when creating a custom JARVIS voice.</p>
+              </div>
+              <div class="settings-field compact-field">
+                <label>Speech capture language</label>
+                <select id="select-speech-language">
+                  <option value="en-US">English (US)</option>
+                  <option value="en-GB">English (UK)</option>
+                  <option value="pl-PL">Polski</option>
+                  <option value="es-ES">Español</option>
+                  <option value="de-DE">Deutsch</option>
+                  <option value="fr-FR">Français</option>
+                  <option value="it-IT">Italiano</option>
+                  <option value="pt-PT">Português</option>
+                  <option value="uk-UA">Українська</option>
+                </select>
+              </div>
+              <div class="voice-recorder-row">
+                <button class="settings-btn primary" id="btn-voice-record">Start Recording</button>
+                <button class="settings-btn" id="btn-voice-stop" disabled>Stop</button>
+                <button class="settings-btn" id="btn-voice-save" disabled>Save Sample</button>
+                <span id="voice-record-status">Ready for calibration, sir.</span>
+              </div>
+              <audio id="voice-sample-player" controls style="display:none"></audio>
+              <div id="voice-sample-list" class="mini-list voice-samples"></div>
             </div>
           </section>
 
@@ -1235,6 +1278,8 @@ function wireEvents() {
     if (voice) await apiPost("/api/settings/keys", { key_name: "ELEVENLABS_VOICE_ID", key_value: voice });
   });
 
+  wireVoiceCaptureLab();
+
   // Save preferences
   document.getElementById("btn-save-prefs")?.addEventListener("click", async () => {
     const user_name = (document.getElementById("input-user-name") as HTMLInputElement).value.trim();
@@ -1409,6 +1454,120 @@ async function advanceSetup() {
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+
+let voiceRecorder: MediaRecorder | null = null;
+let voiceChunks: BlobPart[] = [];
+let latestVoiceBlob: Blob | null = null;
+let voiceRecordStartedAt = 0;
+
+function setVoiceStatus(message: string) {
+  const status = document.getElementById("voice-record-status");
+  if (status) status.textContent = message;
+}
+
+async function loadVoiceSamples() {
+  const list = document.getElementById("voice-sample-list");
+  if (!list) return;
+  try {
+    const data = await apiGet<VoiceSamplesResponse>("/api/voice-samples");
+    if (!data.samples.length) {
+      list.innerHTML = `<div class="mini-row"><strong>No saved samples yet</strong><small>Record a clean phrase so future voice cloning has proper source material.</small></div>`;
+      return;
+    }
+    list.innerHTML = data.samples.slice(0, 6).map((sample) => `
+      <div class="mini-row">
+        <strong>${sample.name}</strong>
+        <small>${Math.round(sample.duration_seconds)}s · ${(sample.size_bytes / 1024).toFixed(1)} KB · ${new Date(sample.created_at * 1000).toLocaleString()}</small>
+        <div class="mini-actions"><a href="${sample.download_url}" target="_blank" rel="noreferrer">Open</a></div>
+      </div>`).join("");
+  } catch {
+    list.innerHTML = `<div class="mini-row"><strong>Voice samples unavailable</strong><small>The server is not ready yet.</small></div>`;
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function wireVoiceCaptureLab() {
+  const languageSelect = document.getElementById("select-speech-language") as HTMLSelectElement | null;
+  if (languageSelect) {
+    languageSelect.value = localStorage.getItem("jarvis.speechLanguage") || "en-US";
+    languageSelect.addEventListener("change", async () => {
+      localStorage.setItem("jarvis.speechLanguage", languageSelect.value);
+      window.dispatchEvent(new CustomEvent("jarvis:speech-language", { detail: languageSelect.value }));
+      await apiPost("/api/settings/keys", { key_name: "JARVIS_SPEECH_LANGUAGE", key_value: languageSelect.value });
+      setVoiceStatus(`Speech capture language set to ${languageSelect.value}. Excellent diction advised.`);
+    });
+  }
+
+  const recordBtn = document.getElementById("btn-voice-record") as HTMLButtonElement | null;
+  const stopBtn = document.getElementById("btn-voice-stop") as HTMLButtonElement | null;
+  const saveBtn = document.getElementById("btn-voice-save") as HTMLButtonElement | null;
+  const player = document.getElementById("voice-sample-player") as HTMLAudioElement | null;
+
+  recordBtn?.addEventListener("click", async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      voiceChunks = [];
+      latestVoiceBlob = null;
+      voiceRecordStartedAt = Date.now();
+      voiceRecorder = new MediaRecorder(stream, { mimeType });
+      voiceRecorder.ondataavailable = (event) => { if (event.data.size > 0) voiceChunks.push(event.data); };
+      voiceRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        latestVoiceBlob = new Blob(voiceChunks, { type: mimeType });
+        const duration = Math.max(1, Math.round((Date.now() - voiceRecordStartedAt) / 1000));
+        if (player) {
+          player.src = URL.createObjectURL(latestVoiceBlob);
+          player.style.display = "block";
+        }
+        if (saveBtn) saveBtn.disabled = false;
+        setVoiceStatus(`Captured ${duration}s. Playback ready; save when it sounds suitably brilliant.`);
+      };
+      voiceRecorder.start();
+      recordBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = false;
+      if (saveBtn) saveBtn.disabled = true;
+      setVoiceStatus("Recording… speak naturally for 10–30 seconds. Dramatic pauses are optional.");
+    } catch {
+      setVoiceStatus("Microphone access failed. Permission appears to be playing hard to get.");
+    }
+  });
+
+  stopBtn?.addEventListener("click", () => {
+    if (voiceRecorder && voiceRecorder.state !== "inactive") voiceRecorder.stop();
+    if (recordBtn) recordBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+  });
+
+  saveBtn?.addEventListener("click", async () => {
+    if (!latestVoiceBlob) return;
+    const duration = Math.max(1, Math.round((Date.now() - voiceRecordStartedAt) / 1000));
+    const dataBase64 = await blobToBase64(latestVoiceBlob);
+    const result = await apiPost<{ success?: boolean; error?: string }>("/api/voice-samples", {
+      filename: `jarvis-voice-sample-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
+      mime_type: latestVoiceBlob.type || "audio/webm",
+      duration_seconds: duration,
+      data_base64: dataBase64,
+    });
+    if (result.success) {
+      setVoiceStatus("Voice sample saved. The archive has accepted your dulcet tones.");
+      saveBtn.disabled = true;
+      await loadVoiceSamples();
+    } else {
+      setVoiceStatus(result.error || "Could not save voice sample.");
+    }
+  });
+
+  loadVoiceSamples();
+}
 
 export async function openSettings() {
   if (isOpen) return;

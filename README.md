@@ -1,11 +1,16 @@
-# JARVIS — Virtual AI Assistant by AI Evolution Labs
+# 🤖 JARVIS — AI Evolution Community Assistant
 
 <p align="center">
-  <img alt="JARVIS — premium voice assistant hero" src="jarvis-premium-clear-voice-assistant.svg" width="100%" />
+  <img alt="JARVIS cinematic voice assistant hero" src="jarvis-premium-clear-voice-assistant.svg" width="100%" />
 </p>
 
 <p align="center">
-  <strong>Voice-first, agent-ready desktop assistant with a cinematic HUD, BYOK model connectors, persistent memory, installable skills, and developer automation.</strong>
+  <strong>A local, voice-first desktop AI assistant with a cinematic HUD, memory, skills, MCP tools, model switching, and a dry Stark-style personality.</strong>
+</p>
+
+<p align="center">
+  <a href="https://aievolutionlabs.io"><strong>🌍 AI Evolution Labs</strong></a> ·
+  <a href="https://aievolutionpolska.pl"><strong>🇵🇱 AI Evolution Polska</strong></a>
 </p>
 
 <p align="center">
@@ -15,145 +20,164 @@
   <img alt="Three.js" src="https://img.shields.io/badge/Three.js-Orb-000000?style=for-the-badge&logo=threedotjs&logoColor=white" />
 </p>
 
-> “Will do, sir.”
+> “Good evening, sir. Systems are standing by; naturally, the interesting bits are already sorted.”
 
 ---
 
-## English overview
+## 🇬🇧 English
 
-JARVIS is a local, voice-first operating layer for your computer. It combines a cinematic browser HUD, WebSocket voice loop, configurable LLM providers, text-to-speech, persistent SQLite memory, task and note management, a bundled skill catalog, screen/browser awareness, and Claude Code project orchestration.
+### ✨ What is JARVIS?
 
-It is designed as **bring your own key** software: keys stay in your local `.env`, the settings panel exposes only supported connectors, and the runtime router can switch brains without restarting the server.
+JARVIS is a community-built AI operating layer for your computer. It combines a browser-based cinematic mission-control interface, live speech recognition, text-to-speech, configurable LLM providers, persistent memory, desktop actions, skills, MCP connectors, and developer automation.
 
-### What JARVIS can do
+The project is built by the **AI Evolution** community for people who want a personal AI assistant that feels useful, fast, elegant, and a little bit funny — not another boring chatbot window.
 
-- Talk with a Stark-style assistant voice and a reactive Three.js orb.
-- Control the computer by voice on macOS, Windows, and Linux: open apps, websites, files, and terminals, set volume, control media playback, copy to the clipboard, take screenshots, and lock the screen.
-- Remember durable facts, preferences, decisions, projects, people, tasks, and notes.
-- Prioritize your day using calendar events, open tasks, and important memories.
-- Search or open websites, summarize pages, and send compact cards to the Control Center.
-- Read Apple Calendar/Mail/Notes on macOS and degrade gracefully on Windows/Linux.
-- Launch Claude Code in a project, ask it to inspect/fix/build, and track active dispatches.
-- Connect external tools through curated MCP connectors (Notion, Slack, GitHub, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase, and more) with API tokens managed from Settings.
-- Use installable business skills such as meeting summaries, email triage, SOP writing, invoices, proposals, support replies, SQL help, and deployment checklists.
-- Lean on personal-assistant skills: daily brief, weekly review, focus sprints, reading list, meal/workout/learning plans, wellness breaks, password generator, unit converter, and Markdown-to-HTML.
-- Use precise utility skills with real executable handlers: timezone converter, date calculator, JSON formatter, CSV-to-table, writing analyzer, and checklist builder — plus research skills for fact-checking, product comparisons, and news digests.
-- Run executable skills that generate local artifacts under `data/artifacts/`.
+### 🚀 Highlights
 
-### Supported connectors
+- 🎙️ **Voice-first interaction** — speak commands through the browser and receive spoken replies.
+- 🧪 **Voice Capture Lab** — record clean reference voice samples, play them back, save them locally, and use them when creating a custom voice with your provider.
+- 🧠 **Switchable AI brain** — Anthropic Claude by default; OpenAI, Google Gemini, DeepSeek, and Ollama are available when configured.
+- 🔊 **Premium voice output** — Fish Audio by default, ElevenLabs optional, with configurable voice IDs.
+- 🪩 **Cinematic HUD** — reactive Three.js orb, system metrics, activity log, widgets, action guard, and artifacts panel.
+- 🧾 **Persistent memory** — stores facts, preferences, tasks, notes, decisions, projects, and people in local SQLite storage.
+- ⚡ **Skills system** — bundled skills for productivity, research, business operations, planning, writing, and utility tasks.
+- 🔌 **MCP tools** — connect external systems such as GitHub, Slack, Notion, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase, and more.
+- 🖥️ **Desktop control** — open apps, websites, files, folders, terminals, screenshots, clipboard, media, volume, and lock screen where supported.
+- 🧑‍💻 **Developer automation** — can open Claude Code in project folders, inspect projects, dispatch tasks, and report progress.
+- 🛡️ **Action Guard** — sensitive external tool calls can be queued for confirmation before execution.
 
-#### Required / recommended
+### 🧬 Personality
 
-| Provider | Environment key | Purpose | Notes |
-| --- | --- | --- | --- |
-| Anthropic Claude | `ANTHROPIC_API_KEY` | Recommended default reasoning brain and action planner | Required unless another LLM or Ollama is selected |
-| Fish Audio | `FISH_API_KEY` | Default JARVIS-style TTS voice | Recommended for voice mode |
-| Fish Voice ID | `FISH_VOICE_ID` | Fish Audio voice identity | Optional override |
-| Ollama | `OLLAMA_BASE_URL` | Local/offline OpenAI-compatible models | No API key required |
+JARVIS is tuned to feel like a polished AI operator:
 
-#### Optional supported connectors
+- concise, calm, and capable;
+- British-butler inspired, without becoming parody;
+- dryly funny, never clownish;
+- proactive when useful, quiet when not;
+- designed for audio: short phrases, clean cadence, and no corporate filler.
 
-| Provider | Environment key | Default model / role |
-| --- | --- | --- |
-| OpenAI | `OPENAI_API_KEY` | GPT-5 family, default `gpt-5.2`; spoken aliases like “GPT 5-5” are normalized to the configured GPT-5 default instead of sending unsupported IDs |
-| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek V4 Pro, default `deepseek-v4-pro`, with `deepseek-v4-flash` as the fast option |
-| Google AI | `GOOGLE_API_KEY` | Gemini models |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Optional premium/multilingual voice provider |
+You can tune personality from **Settings → Personality Lab**:
 
-Perplexity, Groq, and Hermes were removed from the connector catalog. Hermes is not exposed because there is no Hermes API connector in this project, and unsupported providers are intentionally absent from onboarding/settings.
+- preset style;
+- humor level;
+- formality;
+- proactive mode;
+- custom personality brief;
+- response language.
 
-#### MCP tool connectors
+### 🎙️ Voice capture and speech settings
 
-Settings → Skills & Tools lists curated MCP servers (Notion, Slack, GitHub, Supabase, Stripe, HubSpot, Figma, Linear, Sentry, Asana, Atlassian, Zapier, Canva, Brave web search, local files, and Google Workspace via your own endpoint). Paste each connector's API token directly on its card; servers without a public hosted endpoint accept a custom URL or stdio command. JARVIS calls connected tools with `[ACTION:MCP_CALL]`, and write operations go through the action guard for confirmation.
+The browser voice loop uses the Web Speech API. For best results, use Chrome or another Chromium-based browser.
 
-### Desktop control support matrix
+In **Settings → Model & Voice → Voice Capture Lab** you can:
+
+1. choose the speech recognition language;
+2. record a clean reference sample;
+3. play it back immediately;
+4. save it locally under `data/voice_samples/`;
+5. use the saved sample as source material when configuring or cloning a custom voice in Fish Audio, ElevenLabs, or another voice provider.
+
+Recommended recording phrase:
+
+```text
+Good evening. This is my reference voice sample for JARVIS. I am speaking clearly, naturally, and at a normal pace.
+```
+
+### 🧩 Supported providers
+
+| Area | Providers |
+| --- | --- |
+| LLM / reasoning | Anthropic Claude, OpenAI, Google Gemini, DeepSeek, Ollama |
+| Text-to-speech | Fish Audio, ElevenLabs |
+| Local memory | SQLite |
+| Frontend | Vite, TypeScript, Three.js |
+| Backend | FastAPI, WebSocket |
+| Tooling | MCP connectors, desktop control, Claude Code dispatch |
+
+### 🖥️ Desktop control support
 
 | Capability | macOS | Windows | Linux |
 | --- | --- | --- | --- |
-| Open app / URL / file | ✅ | ✅ | ✅ (`xdg-open`) |
-| Open terminal (with command) | ✅ Terminal.app | ✅ PowerShell | ✅ gnome-terminal/konsole |
-| System volume | ✅ | — (graceful reply) | ✅ (`pactl`) |
-| Media play/pause/next/previous | ✅ | — (graceful reply) | ✅ (`playerctl`) |
-| Lock screen | ✅ | ✅ | ✅ (`loginctl`) |
-| Clipboard copy | ✅ | ✅ | ✅ (`xclip`/`wl-copy`) |
-| Screenshot | ✅ | ✅ | ✅ (`gnome-screenshot`) |
-| Apple Calendar / Mail / Notes | ✅ | reported unavailable | reported unavailable |
-| Claude Code terminal dispatch | ✅ | reported unavailable | reported unavailable |
+| Open app / URL / file | ✅ | ✅ | ✅ |
+| Open terminal | ✅ | ✅ | ✅ |
+| Set volume | ✅ | graceful fallback | ✅ |
+| Media play / pause / next / previous | ✅ | graceful fallback | ✅ |
+| Lock screen | ✅ | ✅ | ✅ |
+| Clipboard copy | ✅ | ✅ | ✅ |
+| Screenshot | ✅ | ✅ | ✅ |
+| Apple Calendar / Mail / Notes | ✅ | unavailable message | unavailable message |
+| Claude Code terminal dispatch | ✅ | unavailable message | unavailable message |
 
-Unsupported combinations never crash — JARVIS answers with a polite "not available on this platform" message.
+Unsupported platform features are designed to fail gracefully with a clear JARVIS-style response.
 
-### How memory and skills work
+### 📦 Installation
 
-- **Memory** lives in SQLite (`data/jarvis.db`) and stores facts, preferences, projects, people, decisions, tasks, and notes. Relevant memories are injected into every LLM call as private context.
-- **Skills** live in the same SQLite database and are seeded from `skills.py`. Enabled skills are injected into the system prompt as compact operating instructions.
-- **Executable skills** use `[ACTION:RUN_SKILL] slug ||| {json params}` to create artifacts that can be downloaded or previewed.
-- **Onboarding** asks about your name, role, goals, tools, and preferences, then recommends relevant skills automatically.
-
-### Quick start — Windows
-
-```powershell
-git clone https://github.com/your-org/jarvis.git
-cd jarvis
-.\start.ps1
-```
-
-The PowerShell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut named **JARVIS by AI Evolution Labs** with the generated orb icon, installs Python/frontend dependencies, starts backend/frontend terminals, and opens the app in your browser.
-
-Open Chrome at <http://localhost:5180>. If Vite prints a different local URL, use the URL shown in the terminal.
-
-### Quick start — macOS / Linux
+#### 1. Backend
 
 ```bash
-git clone https://github.com/your-org/jarvis.git
-cd jarvis
-./start.sh
-```
-
-The shell launcher copies `.env.example` to `.env` when needed, installs a desktop shortcut (`JARVIS.command` on macOS or `jarvis.desktop` with the generated orb icon on Linux), installs dependencies, starts the backend plus frontend dev server, and opens <http://localhost:5180> once the server reports healthy.
-
-The brand icon (`jarvis.png` / `jarvis.ico`) is generated locally by `scripts/generate_icon.py` (requires Pillow, already in `requirements.txt`) — no binary assets are committed.
-
-### Manual start
-
-```bash
-cp .env.example .env
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 python -m pip install -r requirements.txt
-cd frontend && npm install && cd ..
+```
+
+#### 2. Frontend
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+#### 3. Environment
+
+Create `.env` in the project root:
+
+```env
+ANTHROPIC_API_KEY=your-anthropic-api-key
+FISH_API_KEY=your-fish-audio-api-key
+FISH_VOICE_ID=612b878b113047d9a770c069c8b4fdfe
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+OPENAI_API_KEY=
+GOOGLE_API_KEY=
+DEEPSEEK_API_KEY=
+OLLAMA_BASE_URL=http://localhost:11434
+JARVIS_LLM_PROVIDER=anthropic
+JARVIS_TTS_PROVIDER=fish_audio
+USER_NAME=Tony
+HONORIFIC=sir
+JARVIS_UI_LANGUAGE=en
+JARVIS_RESPONSE_LANGUAGE=en
+JARVIS_PERSONALITY_PRESET=stark
+JARVIS_HUMOR_LEVEL=balanced
+JARVIS_FORMALITY_LEVEL=butler
+JARVIS_PROACTIVE_MODE=smart
+```
+
+You can also configure providers directly in the app through **Settings**.
+
+### ▶️ Run locally
+
+Terminal 1 — backend:
+
+```bash
 python server.py
 ```
 
-In a second terminal:
+Terminal 2 — frontend:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Manual configuration
+Open:
 
-```env
-ANTHROPIC_API_KEY=your-anthropic-api-key-here
-FISH_API_KEY=your-fish-audio-api-key-here
-FISH_VOICE_ID=612b878b113047d9a770c069c8b4fdfe
-ELEVENLABS_API_KEY=
-ELEVENLABS_VOICE_ID=
-DEEPSEEK_API_KEY=
-OPENAI_API_KEY=
-GOOGLE_API_KEY=
-JARVIS_LLM_PROVIDER=anthropic
-JARVIS_TTS_PROVIDER=fish_audio
-OLLAMA_BASE_URL=http://localhost:11434
-# JARVIS_LLM_MODEL_OPENAI=gpt-5.2
-# JARVIS_LLM_MODEL_DEEPSEEK=deepseek-v4-pro
-USER_NAME=Tony
-HONORIFIC=sir
-JARVIS_UI_LANGUAGE=en
-JARVIS_RESPONSE_LANGUAGE=en
+```text
+http://localhost:5180
 ```
 
-You can also press `,` in the app and configure everything from Settings.
-
-### Keyboard shortcuts
+### ⌨️ Keyboard shortcuts
 
 | Key | Action |
 | --- | --- |
@@ -161,173 +185,301 @@ You can also press `,` in the app and configure everything from Settings.
 | `M` | Mute / unmute microphone |
 | `Esc` | Stop speaking or close panels |
 | `L` | Clear activity log |
-| `,` | Open settings/onboarding |
+| `,` | Open settings |
 | `?` | Toggle shortcuts overlay |
 
-### Architecture
+### 🧱 Architecture
 
 ```text
-Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS provider → WebSocket → Speaker
+Microphone → Web Speech API → WebSocket → FastAPI → LLM provider → TTS provider → Speaker
                                               │
-                                              ├─ Memory / Tasks / Notes / Onboarding
-                                              ├─ Enabled Skills + executable artifacts
-                                              ├─ Claude Code / developer agent dispatch
-                                              ├─ Calendar / Mail / Notes integrations
-                                              └─ Browser, screen context, planning, and templates
+                                              ├─ Memory / Tasks / Notes
+                                              ├─ Skills + executable artifacts
+                                              ├─ Control Center widgets
+                                              ├─ Action Guard confirmations
+                                              ├─ MCP tools
+                                              ├─ Desktop / browser / screen context
+                                              └─ Claude Code project orchestration
 ```
 
-| Layer | Technology |
-| --- | --- |
-| Backend | FastAPI + Python |
-| Frontend | Vite + TypeScript + Three.js |
-| Transport | WebSocket JSON messages + binary audio |
-| LLM | Anthropic default; OpenAI, DeepSeek, Google, Ollama optional |
-| TTS | Fish Audio default; ElevenLabs optional |
-| Local state | SQLite memory/tasks/notes/skills |
-| OS bridge | AppleScript on macOS; `system_control.py` command builders on Windows/Linux; graceful status when unsupported |
-
-### API reference
-
-Key REST endpoints (all served by `server.py` on port `8340`):
+### 🔗 Key API endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/health`, `GET /api/system`, `GET /api/usage` | Health, telemetry, token/cost usage |
-| `GET/POST/DELETE /api/tasks`, `GET /api/projects` | Claude Code task and project management |
-| `POST /api/settings/keys`, `POST /api/settings/active`, `GET /api/settings/status` | Whitelisted env keys, active LLM/TTS engine, full status payload |
-| `POST /api/settings/test-provider`, `GET /api/settings/ollama-models` | Connectivity tests and local model discovery |
-| `GET /api/skills`, `POST /api/skills/{slug}/toggle`, `POST /api/skills/{slug}/run` | Skill catalog, enablement, executable runs |
-| `GET /api/artifacts`, `GET /api/artifacts/{name}/preview` | Generated artifact listing and preview |
-| `GET /api/mcp`, `POST /api/mcp/{id}/connect`, `POST /api/mcp/{id}/call` | MCP connector management and tool calls |
-| `GET/POST/DELETE /api/memories`, `GET /api/memories/search` | Persistent memory CRUD and FTS search |
-| `GET /api/onboarding`, `POST /api/onboarding/profile` | First-run profile discovery |
-| `GET /api/action-log`, `POST /api/action-log/{id}/confirm` | Action guard audit trail and confirmations |
+| `GET /api/health` | Backend health check |
+| `GET /api/system` | System metrics |
+| `GET /api/usage` | Session token and cost telemetry |
+| `POST /api/settings/keys` | Save whitelisted environment keys |
+| `POST /api/settings/active` | Select active LLM / TTS provider |
+| `GET /api/settings/status` | Full settings status payload |
+| `GET /api/skills` | Skill catalog |
+| `POST /api/skills/{slug}/toggle` | Enable or disable a skill |
+| `POST /api/skills/{slug}/run` | Run executable skill |
+| `GET /api/mcp` | MCP connector registry |
+| `POST /api/mcp/{id}/connect` | Connect an MCP tool server |
+| `GET /api/memories` | Persistent memory list |
+| `GET /api/voice-samples` | List local voice reference recordings |
+| `POST /api/voice-samples` | Save a browser-recorded voice sample |
+| `GET /api/artifacts` | Generated artifacts |
+| `GET /api/action-log` | Action Guard audit trail |
 
-The WebSocket voice loop at `ws://localhost:8340/ws/voice` exchanges JSON messages: client sends `{"type": "transcript", "text": ...}`; the server replies with `status` (state changes), `audio` (base64 TTS + text), `text` (no-TTS fallback), `task_spawned` / `task_complete`, `control_center` (HUD cards), and `action_pending` (guardrail confirmations).
+The main voice loop runs on:
 
-The LLM triggers work through `[ACTION:*]` tags embedded in replies — `BUILD`, `BROWSE`, `RESEARCH`, `OPEN_TERMINAL`, `PROMPT_PROJECT`, `ADD_TASK`, `ADD_NOTE`, `COMPLETE_TASK`, `REMEMBER`, `CREATE_NOTE`, `READ_NOTE`, `SCREEN`, `PROFILE`, `RECOMMEND_SKILLS`, `ONBOARD_DONE`, `RUN_SKILL`, `MCP_CALL`, `CONTROL_CENTER`, `OPEN_APP`, `OPEN_PATH`, `SET_VOLUME`, `MEDIA`, `LOCK_SCREEN`, `CLIPBOARD`, and `SCREENSHOT`.
+```text
+ws://localhost:8340/ws/voice
+```
 
-### Troubleshooting
-
-- **Microphone never activates** — voice input uses the browser Web Speech API; use Chrome (or another Chromium browser) on `http://localhost:5180` and grant the mic permission when prompted.
-- **No spoken replies** — add `FISH_API_KEY` (or switch to ElevenLabs) in Settings → API Keys; without a TTS key JARVIS falls back to on-screen text.
-- **Voice replies use the wrong Claude model** — voice replies use your selected Anthropic model; the low-latency Haiku default applies only when no explicit model override is set.
-- **Port already in use** — the backend listens on `8340` and Vite on `5180`; stop the conflicting process or adjust `frontend/vite.config.ts`.
-- **Ollama not detected** — verify `OLLAMA_BASE_URL` (default `http://localhost:11434`) and use the Test button in Settings → Engine.
-- **"Not available on this platform"** — Apple Calendar/Mail/Notes and Claude Code terminal dispatch are macOS-only; generic desktop control works everywhere (see the support matrix above).
-- **No desktop shortcut icon** — run `python scripts/generate_icon.py` (requires Pillow) and reinstall the shortcut.
-
-### Development checks
+### ✅ Development checks
 
 ```bash
-python -m compileall server.py providers integrations.py memory.py skills.py actions.py system_control.py mcp_registry.py
-python tests/test_providers.py
-python tests/test_system_control.py
-python tests/test_skills_handlers.py
+pytest
 cd frontend && npm run build
 ```
 
-### Key files
+### 🛠️ Troubleshooting
 
-| File | Purpose |
-| --- | --- |
-| `server.py` | Main FastAPI/WebSocket server, settings APIs, voice/action loop |
-| `providers/config.py` | Single source of truth for LLM/TTS provider metadata |
-| `providers/llm.py` | Unified completion router for Anthropic, OpenAI-compatible providers, Gemini, and Ollama |
-| `integrations.py` | Onboarding/settings connector catalog |
-| `mcp_registry.py` | Curated MCP connector catalog with auth/token management |
-| `system_control.py` | Cross-platform desktop control (apps, volume, media, clipboard, lock, screenshots) |
-| `memory.py` | SQLite memory, tasks, notes, FTS search, and prompt context |
-| `skills.py` | Skill catalog, enable/disable logic, prompt injection, executable handlers |
-| `frontend/src/settings.ts` | Onboarding/settings UI logic |
-| `.env.example` | Safe BYOK configuration template |
-| `start.ps1` / `start.sh` | Windows and macOS/Linux launchers with shortcut installation |
-| `CLAUDE.md` | Instructions for future coding agents working in this repo |
+- **Microphone does not start** — use Chrome/Chromium, open the app from `http://localhost:5180`, and allow microphone access.
+- **No spoken replies** — configure Fish Audio or ElevenLabs. Without TTS, JARVIS still replies in text.
+- **Speech recognition language is wrong** — open **Settings → Model & Voice → Voice Capture Lab** and select the correct speech capture language.
+- **Voice sample will not save** — keep recordings under 5 MB and use supported browser audio formats such as WebM/Opus.
+- **Provider test fails** — verify the API key and selected provider in Settings.
+- **Ollama not detected** — confirm `OLLAMA_BASE_URL` and that Ollama is running locally.
+- **Platform action unavailable** — some macOS-specific features intentionally return a graceful unavailable message on Windows/Linux.
+
+### 🌍 Community
+
+This project is part of **AI Evolution** — a community building practical AI tools, automations, education, and experiments.
+
+- 🌐 AI Evolution Labs: https://aievolutionlabs.io
+- 🇵🇱 AI Evolution Polska: https://aievolutionpolska.pl
 
 ---
 
-## Polski opis
+## 🇵🇱 Polski
 
-JARVIS to lokalny, głosowy asystent dla komputera: kinowy HUD w przeglądarce, reaktywna kula Three.js, WebSocket voice loop, wybieralne modele LLM, synteza mowy, trwała pamięć SQLite, zadania, notatki, katalog umiejętności, świadomość ekranu/przeglądarki oraz integracja z Claude Code do pracy nad projektami.
+### ✨ Czym jest JARVIS?
 
-Projekt działa w modelu **bring your own key**: klucze zostają lokalnie w `.env`, ustawienia pokazują tylko wspierane connectory, a aktywny model można zmienić z panelu bez restartu serwera.
+JARVIS to lokalna, głosowa warstwa AI dla Twojego komputera. Łączy filmowy interfejs mission-control w przeglądarce, rozpoznawanie mowy, syntezę głosu, przełączane modele LLM, trwałą pamięć, akcje desktopowe, umiejętności, konektory MCP i automatyzację pracy deweloperskiej.
 
-### Co JARVIS potrafi
+Projekt buduje społeczność **AI Evolution** dla osób, które chcą mieć osobistego asystenta AI: użytecznego, szybkiego, eleganckiego i odrobinę zabawnego — a nie kolejne nudne okno czatu.
 
-- Rozmawiać głosem w stylu Stark/JARVIS i animować audio-reaktywną kulę.
-- Sterować komputerem głosem na macOS, Windows i Linux: otwierać aplikacje, strony, pliki i terminale, ustawiać głośność, sterować odtwarzaczem, kopiować do schowka, robić zrzuty ekranu i blokować ekran (niewspierane kombinacje dostają grzeczną odpowiedź zamiast błędu).
-- Łączyć się z zewnętrznymi narzędziami przez connectory MCP (Notion, Slack, GitHub, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase i inne) — tokeny wkleja się bezpośrednio w Ustawieniach.
-- Zapamiętywać fakty, preferencje, decyzje, projekty, osoby, zadania i notatki.
-- Planować dzień na podstawie kalendarza, otwartych zadań i ważnych wspomnień.
-- Otwierać strony, robić research przez przeglądarkę i wysyłać krótkie karty do Control Center.
-- Czytać Apple Calendar/Mail/Notes na macOS; na Windows/Linux pokazuje status niedostępnych integracji bez wysypywania aplikacji.
-- Uruchamiać Claude Code w projekcie, prosić go o analizę/poprawki/build i śledzić aktywne dispatch’e.
-- Korzystać z umiejętności biznesowych: podsumowania spotkań, triage maili, SOP, faktury, oferty, odpowiedzi supportu, SQL, checklisty deploymentu i inne.
-- Korzystać z umiejętności asystenta osobistego: poranny brief, przegląd tygodnia, sprinty skupienia, lista lektur, plany posiłków/treningów/nauki, przerwy wellness, generator haseł, konwerter jednostek i Markdown→HTML.
-- Używać precyzyjnych narzędzi z wykonywalnymi handlerami: konwerter stref czasowych, kalkulator dat, formatowanie JSON, CSV→tabela, analizator tekstu i generator checklist — plus umiejętności researchowe: fact-checking, porównania produktów i przegląd newsów.
-- Generować lokalne artefakty z umiejętności wykonywalnych w `data/artifacts/`.
+### 🚀 Najważniejsze funkcje
 
-### Connectory API
+- 🎙️ **Obsługa głosem** — mówisz do JARVIS-a w przeglądarce i otrzymujesz odpowiedzi głosowe.
+- 🧪 **Voice Capture Lab** — nagrywasz czyste próbki głosu, odsłuchujesz je, zapisujesz lokalnie i możesz użyć ich przy tworzeniu własnego głosu u wybranego providera.
+- 🧠 **Przełączany mózg AI** — domyślnie Anthropic Claude; opcjonalnie OpenAI, Google Gemini, DeepSeek i Ollama.
+- 🔊 **Premium synteza głosu** — domyślnie Fish Audio, opcjonalnie ElevenLabs, z konfigurowalnymi Voice ID.
+- 🪩 **Filmowy HUD** — reaktywna kula Three.js, metryki systemu, log aktywności, widgety, Action Guard i panel artefaktów.
+- 🧾 **Trwała pamięć** — lokalnie zapisuje fakty, preferencje, zadania, notatki, decyzje, projekty i osoby.
+- ⚡ **System umiejętności** — gotowe umiejętności do produktywności, researchu, biznesu, planowania, pisania i narzędziowych zadań.
+- 🔌 **Narzędzia MCP** — podłączasz systemy zewnętrzne, np. GitHub, Slack, Notion, Linear, Sentry, Asana, Atlassian, Zapier, Stripe, HubSpot, Figma, Canva, Supabase i więcej.
+- 🖥️ **Sterowanie komputerem** — otwieranie aplikacji, stron, plików, folderów, terminala, zrzuty ekranu, schowek, media, głośność i blokada ekranu tam, gdzie system to wspiera.
+- 🧑‍💻 **Automatyzacja deweloperska** — może otworzyć Claude Code w projekcie, przejrzeć kod, uruchomić zadania i raportować postęp.
+- 🛡️ **Action Guard** — wrażliwe akcje narzędziowe mogą czekać na potwierdzenie przed wykonaniem.
 
-#### Wymagane / rekomendowane
+### 🧬 Charakter JARVIS-a
 
-| Provider | Klucz środowiskowy | Zastosowanie | Uwagi |
+JARVIS jest dopracowany tak, aby brzmiał jak elegancki operator AI:
+
+- zwięzły, spokojny i kompetentny;
+- inspirowany brytyjskim stylem lokaja, ale bez parodii;
+- zabawny w suchy, inteligentny sposób;
+- proaktywny, gdy to pomaga, i cichy, gdy nie trzeba przeszkadzać;
+- przygotowany pod głos: krótkie frazy, dobry rytm i brak korporacyjnego lania wody.
+
+Możesz dostroić go w **Settings → Personality Lab**:
+
+- styl osobowości;
+- poziom humoru;
+- formalność;
+- tryb proaktywności;
+- własny opis charakteru;
+- język odpowiedzi.
+
+### 🎙️ Nagrywanie głosu i ustawienia mowy
+
+Pętla głosowa używa przeglądarkowego Web Speech API. Najlepsze efekty daje Chrome albo inna przeglądarka Chromium.
+
+W **Settings → Model & Voice → Voice Capture Lab** możesz:
+
+1. wybrać język rozpoznawania mowy;
+2. nagrać czystą próbkę referencyjną;
+3. od razu ją odsłuchać;
+4. zapisać lokalnie w `data/voice_samples/`;
+5. użyć jej jako materiału źródłowego przy konfiguracji lub klonowaniu głosu w Fish Audio, ElevenLabs albo innym providerze.
+
+Przykładowa fraza do nagrania:
+
+```text
+Dobry wieczór. To jest moja referencyjna próbka głosu dla JARVIS-a. Mówię wyraźnie, naturalnie i w normalnym tempie.
+```
+
+### 🧩 Obsługiwani providerzy
+
+| Obszar | Providerzy |
+| --- | --- |
+| LLM / rozumowanie | Anthropic Claude, OpenAI, Google Gemini, DeepSeek, Ollama |
+| Text-to-speech | Fish Audio, ElevenLabs |
+| Lokalna pamięć | SQLite |
+| Frontend | Vite, TypeScript, Three.js |
+| Backend | FastAPI, WebSocket |
+| Narzędzia | Konektory MCP, sterowanie desktopem, dispatch Claude Code |
+
+### 🖥️ Wsparcie sterowania desktopem
+
+| Funkcja | macOS | Windows | Linux |
 | --- | --- | --- | --- |
-| Anthropic Claude | `ANTHROPIC_API_KEY` | Domyślny mózg i planner akcji | Wymagany, chyba że wybierzesz inny LLM lub Ollamę |
-| Fish Audio | `FISH_API_KEY` | Domyślny głos JARVIS-a | Rekomendowany do trybu głosowego |
-| Fish Voice ID | `FISH_VOICE_ID` | Identyfikator głosu Fish Audio | Opcjonalna podmiana |
-| Ollama | `OLLAMA_BASE_URL` | Lokalne/offline modele kompatybilne z OpenAI | Bez klucza API |
+| Otwieranie aplikacji / URL / plików | ✅ | ✅ | ✅ |
+| Otwieranie terminala | ✅ | ✅ | ✅ |
+| Głośność systemu | ✅ | łagodny fallback | ✅ |
+| Media play / pause / next / previous | ✅ | łagodny fallback | ✅ |
+| Blokada ekranu | ✅ | ✅ | ✅ |
+| Kopiowanie do schowka | ✅ | ✅ | ✅ |
+| Zrzut ekranu | ✅ | ✅ | ✅ |
+| Apple Calendar / Mail / Notes | ✅ | komunikat niedostępności | komunikat niedostępności |
+| Dispatch Claude Code w terminalu | ✅ | komunikat niedostępności | komunikat niedostępności |
 
-#### Opcjonalne wspierane connectory
+Funkcje niedostępne na danej platformie nie powinny crashować aplikacji — JARVIS odpowie klarownym komunikatem.
 
-| Provider | Klucz środowiskowy | Model / rola |
-| --- | --- | --- |
-| OpenAI | `OPENAI_API_KEY` | Rodzina GPT-5, domyślnie `gpt-5.2`; aliasy mówione typu „GPT 5-5” są normalizowane do skonfigurowanego domyślnego GPT-5 |
-| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek V4 Pro, domyślnie `deepseek-v4-pro`, szybka opcja `deepseek-v4-flash` |
-| Google AI | `GOOGLE_API_KEY` | Modele Gemini |
-| ElevenLabs | `ELEVENLABS_API_KEY` | Opcjonalny premium/multilingual TTS |
+### 📦 Instalacja
 
-Perplexity, Groq i Hermes zostały usunięte z katalogu connectorów. Hermes nie jest wystawiany, bo projekt nie posiada realnego Hermes API connectora.
-
-### Instalacja i start
-
-Windows:
-
-```powershell
-.\start.ps1
-```
-
-macOS/Linux:
+#### 1. Backend
 
 ```bash
-./start.sh
-```
-
-Launchery tworzą `.env` z `.env.example`, instalują zależności, generują ikonę marki (`scripts/generate_icon.py`), dodają skrót na pulpit z ikoną i uruchamiają backend oraz frontend. Potem otwórz Chrome na <http://localhost:5180>.
-
-### Jak odpalić ręcznie
-
-```bash
-cp .env.example .env
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 python -m pip install -r requirements.txt
-cd frontend && npm install && cd ..
+```
+
+#### 2. Frontend
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+#### 3. Środowisko
+
+Utwórz plik `.env` w katalogu głównym projektu:
+
+```env
+ANTHROPIC_API_KEY=twoj-anthropic-api-key
+FISH_API_KEY=twoj-fish-audio-api-key
+FISH_VOICE_ID=612b878b113047d9a770c069c8b4fdfe
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+OPENAI_API_KEY=
+GOOGLE_API_KEY=
+DEEPSEEK_API_KEY=
+OLLAMA_BASE_URL=http://localhost:11434
+JARVIS_LLM_PROVIDER=anthropic
+JARVIS_TTS_PROVIDER=fish_audio
+USER_NAME=Tony
+HONORIFIC=sir
+JARVIS_UI_LANGUAGE=en
+JARVIS_RESPONSE_LANGUAGE=en
+JARVIS_PERSONALITY_PRESET=stark
+JARVIS_HUMOR_LEVEL=balanced
+JARVIS_FORMALITY_LEVEL=butler
+JARVIS_PROACTIVE_MODE=smart
+```
+
+Providerów możesz też skonfigurować bezpośrednio w aplikacji przez **Settings**.
+
+### ▶️ Uruchomienie lokalne
+
+Terminal 1 — backend:
+
+```bash
 python server.py
 ```
 
-Drugi terminal:
+Terminal 2 — frontend:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Jak myśleć o systemie
+Otwórz:
 
-- **Pamięć** to prywatny kontekst lokalny: JARVIS używa jej, żeby nie zaczynać od zera w każdej rozmowie.
-- **Skille** to instrukcje operacyjne: po włączeniu uczą JARVIS-a konkretnego sposobu wykonania zadania.
-- **Connectory** to tylko realnie obsługiwane integracje: Anthropic/OpenAI/DeepSeek/Google/Ollama dla modeli oraz Fish/ElevenLabs dla głosu.
-- **Claude Code dispatch** to tryb pracy nad repozytoriami: JARVIS potrafi otworzyć projekt i zlecić agentowi konkretne zadanie.
+```text
+http://localhost:5180
+```
 
----
+### ⌨️ Skróty klawiaturowe
 
-Built by **AI Evolution Labs** for people who want a local assistant that can talk, remember, plan, build, and evolve.
+| Klawisz | Akcja |
+| --- | --- |
+| `/` | Fokus na pasek komend |
+| `M` | Wycisz / włącz mikrofon |
+| `Esc` | Zatrzymaj głos albo zamknij panele |
+| `L` | Wyczyść log aktywności |
+| `,` | Otwórz ustawienia |
+| `?` | Pokaż / ukryj pomoc skrótów |
+
+### 🧱 Architektura
+
+```text
+Mikrofon → Web Speech API → WebSocket → FastAPI → provider LLM → provider TTS → Głośnik
+                                             │
+                                             ├─ Pamięć / Zadania / Notatki
+                                             ├─ Umiejętności + artefakty
+                                             ├─ Widgety Control Center
+                                             ├─ Potwierdzenia Action Guard
+                                             ├─ Narzędzia MCP
+                                             ├─ Kontekst desktopu / przeglądarki / ekranu
+                                             └─ Orkiestracja projektów przez Claude Code
+```
+
+### 🔗 Kluczowe endpointy API
+
+| Endpoint | Cel |
+| --- | --- |
+| `GET /api/health` | Status backendu |
+| `GET /api/system` | Metryki systemu |
+| `GET /api/usage` | Tokeny i koszt sesji |
+| `POST /api/settings/keys` | Zapis dozwolonych kluczy środowiskowych |
+| `POST /api/settings/active` | Wybór aktywnego LLM / TTS |
+| `GET /api/settings/status` | Pełny status ustawień |
+| `GET /api/skills` | Katalog umiejętności |
+| `POST /api/skills/{slug}/toggle` | Włączanie / wyłączanie umiejętności |
+| `POST /api/skills/{slug}/run` | Uruchomienie wykonywalnej umiejętności |
+| `GET /api/mcp` | Rejestr konektorów MCP |
+| `POST /api/mcp/{id}/connect` | Podłączenie narzędzia MCP |
+| `GET /api/memories` | Lista pamięci |
+| `GET /api/voice-samples` | Lista lokalnych nagrań referencyjnych |
+| `POST /api/voice-samples` | Zapis próbki głosu nagranej w przeglądarce |
+| `GET /api/artifacts` | Wygenerowane artefakty |
+| `GET /api/action-log` | Historia Action Guard |
+
+Główna pętla głosowa działa pod adresem:
+
+```text
+ws://localhost:8340/ws/voice
+```
+
+### ✅ Sprawdzenie projektu
+
+```bash
+pytest
+cd frontend && npm run build
+```
+
+### 🛠️ Rozwiązywanie problemów
+
+- **Mikrofon się nie uruchamia** — użyj Chrome/Chromium, otwórz aplikację z `http://localhost:5180` i pozwól na dostęp do mikrofonu.
+- **Brak odpowiedzi głosowych** — skonfiguruj Fish Audio albo ElevenLabs. Bez TTS JARVIS nadal odpowiada tekstowo.
+- **Zły język rozpoznawania mowy** — wejdź w **Settings → Model & Voice → Voice Capture Lab** i wybierz poprawny język.
+- **Próbka głosu się nie zapisuje** — nagranie musi mieć mniej niż 5 MB i używać wspieranego formatu audio przeglądarki, np. WebM/Opus.
+- **Test providera nie przechodzi** — sprawdź klucz API i wybranego providera w Settings.
+- **Ollama nie działa** — sprawdź `OLLAMA_BASE_URL` i upewnij się, że Ollama jest uruchomiona lokalnie.
+- **Akcja platformowa jest niedostępna** — część funkcji macOS ma celowy, łagodny fallback na Windows/Linux.
+
+### 🌍 Społeczność
+
+Ten projekt jest częścią **AI Evolution** — społeczności budującej praktyczne narzędzia AI, automatyzacje, edukację i eksperymenty.
+
+- 🌐 AI Evolution Labs: https://aievolutionlabs.io
+- 🇵🇱 AI Evolution Polska: https://aievolutionpolska.pl

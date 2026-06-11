@@ -288,6 +288,14 @@ const voiceInput = createVoiceInput(
   }
 );
 
+window.addEventListener("jarvis:speech-language", (event) => {
+  const lang = (event as CustomEvent<string>).detail;
+  if (lang) {
+    voiceInput.setLanguage(lang);
+    showToast(`Speech capture language set to ${lang}`, "success", 2200);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Audio playback finished
 // ---------------------------------------------------------------------------
@@ -544,7 +552,7 @@ dropZone.addEventListener("drop", async (event) => {
 
 applyWidgetLayout();
 addControlCenterBrief("Control Center online", "Customize widgets with Tune, or ask JARVIS to add news, weather, market snapshots, stats, and text summaries here.", "system");
-addLog("Mission control online.", "system");
+addLog("Mission control online. Voice capture standing by — not ominously, just efficiently.", "system");
 refreshSystemMetrics();
 refreshUsage();
 refreshArtifacts();
